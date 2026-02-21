@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile
 import shutil
-from services import transcribe_audio_with_grok, generate_soap_from_text
+import transcribe_audio_with_grok, generate_soap_from_text
 
 app = FastAPI()
 
