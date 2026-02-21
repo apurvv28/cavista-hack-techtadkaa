@@ -1,0 +1,249 @@
+{
+  "timestamp": "2026-02-21T22:51:13.278084",
+  "total_mappings": 4,
+  "description": "Comprehensive ICD-10 mappings with detailed disease information including precautions, medications, diet, and follow-up recommendations",
+  "mappings": [
+    {
+      "disease": "Hypertension",
+      "icd_code": "I10",
+      "icd_description": "Essential (primary) hypertension",
+      "disease_details": {
+        "disease_name": "Hypertension",
+        "icd_code": "I10",
+        "what_is_wrong": "Hypertension is a chronic condition characterized by consistently elevated blood pressure (\u2265130/80 mmHg). It damages blood vessel walls over time, increasing risk of heart disease, stroke, and kidney problems.",
+        "precautions": [
+          "Reduce sodium intake to <2.3g per day",
+          "Limit alcohol consumption",
+          "Manage stress through relaxation techniques",
+          "Regular blood pressure monitoring",
+          "Avoid smoking and secondhand smoke",
+          "Maintain healthy weight",
+          "Limit caffeine intake",
+          "Regular physical activity (150 min/week)"
+        ],
+        "medications": [
+          "ACE Inhibitors (Lisinopril, Enalapril)",
+          "Angiotensin II Receptor Blockers (Losartan, Valsartan)",
+          "Beta-blockers (Metoprolol, Atenolol)",
+          "Calcium channel blockers (Amlodipine, Diltiazem)",
+          "Thiazide diuretics (Hydrochlorothiazide)",
+          "Alpha-blockers (Doxazosin)"
+        ],
+        "diet_specifications": [
+          "DASH diet (Dietary Approaches to Stop Hypertension)",
+          "Reduce sodium to <2.3g daily (ideally <1.5g)",
+          "Increase potassium-rich foods (bananas, spinach, sweet potatoes)",
+          "Limit processed foods and canned items",
+          "Increase whole grains and fiber",
+          "Choose lean proteins",
+          "Limit saturated fats",
+          "Reduce added sugars"
+        ],
+        "what_to_do": [
+          "Take medications as prescribed without missing doses",
+          "Monitor BP daily at home with validated device",
+          "Maintain regular follow-up appointments",
+          "Exercise 150 minutes/week of moderate activity",
+          "Practice stress management (yoga, meditation)",
+          "Maintain healthy weight",
+          "Report new symptoms to healthcare provider",
+          "Keep a blood pressure log"
+        ],
+        "rehab_options": [
+          "Cardiac rehabilitation program (if post-cardiac event)",
+          "Physical therapy for exercise guidance",
+          "Stress management programs"
+        ],
+        "recommended_followup_days": {
+          "initial_assessment": 3,
+          "routine_followup": 30,
+          "after_medication_change": 7,
+          "bp_home_monitoring": 1,
+          "annual_comprehensive": 365
+        }
+      }
+    },
+    {
+      "disease": "Type 2 Diabetes Mellitus",
+      "icd_code": "E11.9",
+      "icd_description": "Type 2 diabetes mellitus without complications",
+      "disease_details": {
+        "disease_name": "Type 2 Diabetes Mellitus",
+        "icd_code": "E11.9",
+        "what_is_wrong": "Type 2 diabetes is a metabolic disorder where the body cannot regulate blood glucose properly. The pancreas doesn't produce enough insulin or cells resist insulin action, leading to high blood sugar levels.",
+        "precautions": [
+          "Monitor blood glucose regularly",
+          "Check feet daily for injuries or ulcers",
+          "Get annual eye exams for diabetic retinopathy screening",
+          "Monitor kidney function through annual labs",
+          "Maintain dental hygiene and regular checkups",
+          "Avoid processed foods and sugary drinks",
+          "Wear proper footwear to prevent injuries",
+          "Keep vaccinations current"
+        ],
+        "medications": [
+          "Metformin (first-line therapy)",
+          "GLP-1 agonists (Semaglutide, Dulaglutide)",
+          "SGLT2 inhibitors (Empagliflozin, Dapagliflozin)",
+          "Sulfonylureas (Glipizide, Glyburide)",
+          "DPP-4 inhibitors (Sitagliptin)",
+          "Insulin (if glucose control inadequate)"
+        ],
+        "diet_specifications": [
+          "Low glycemic index (GI) foods",
+          "Complex carbohydrates (whole grains, legumes)",
+          "High fiber intake (25-30g daily)",
+          "Lean proteins (chicken, fish, tofu)",
+          "Healthy fats (olive oil, nuts, avocado)",
+          "Limit refined sugars and processed foods",
+          "Portion control",
+          "Consistent meal timing"
+        ],
+        "what_to_do": [
+          "Check blood glucose as recommended",
+          "Take all medications as directed",
+          "Maintain detailed food and activity logs",
+          "Exercise regularly (at least 150 min/week)",
+          "Attend diabetes education classes",
+          "Regular eye exams (annual)",
+          "Annual kidney function screening",
+          "Dental checkups twice yearly"
+        ],
+        "rehab_options": [
+          "Diabetes management classes",
+          "Nutrition counseling and education",
+          "Physical therapy for complications",
+          "Mental health counseling"
+        ],
+        "recommended_followup_days": {
+          "initial_assessment": 7,
+          "routine_followup": 90,
+          "hba1c_check": 90,
+          "eye_exam": 365,
+          "kidney_function": 365,
+          "foot_exam": 180,
+          "dental_checkup": 180
+        }
+      }
+    },
+    {
+      "disease": "Chest Pain",
+      "icd_code": "R07.9",
+      "icd_description": "Chest pain, unspecified",
+      "disease_details": {
+        "disease_name": "Chest Pain",
+        "icd_code": "R07.9",
+        "what_is_wrong": "Chest pain can originate from various causes including cardiac issues, musculoskeletal problems, or anxiety. It requires proper evaluation to rule out life-threatening conditions.",
+        "precautions": [
+          "Seek immediate medical attention if experiencing acute chest pain",
+          "Monitor symptoms carefully",
+          "Avoid strenuous activities until evaluated",
+          "Keep emergency contact numbers accessible",
+          "Use prescribed nitrates as directed",
+          "Avoid sudden temperature changes",
+          "Reduce emotional stress"
+        ],
+        "medications": [
+          "Aspirin (antiplatelet)",
+          "Nitrates (Nitroglycerin)",
+          "Beta-blockers (for cardiac causes)",
+          "Statins (for lipid management)",
+          "ACE inhibitors (for heart protection)"
+        ],
+        "diet_specifications": [
+          "Heart-healthy Mediterranean diet",
+          "Reduce saturated fats",
+          "Increase omega-3 fatty acids (fish 2-3x/week)",
+          "Adequate antioxidants (fruits, vegetables)",
+          "Limit sodium",
+          "Limit caffeine and alcohol",
+          "Small, frequent meals"
+        ],
+        "what_to_do": [
+          "Seek emergency care immediately if severe",
+          "Use prescribed medications (nitroglycerin)",
+          "Rest when symptoms occur",
+          "Attend cardiac rehabilitation if prescribed",
+          "Continue regular medical follow-ups",
+          "Stress management techniques",
+          "Avoid strenuous activities until cleared",
+          "Keep emergency contacts accessible"
+        ],
+        "rehab_options": [
+          "Cardiac rehabilitation program",
+          "Physical therapy for activity progression",
+          "Psychological counseling for anxiety",
+          "Exercise stress testing and monitoring"
+        ],
+        "recommended_followup_days": {
+          "emergency_evaluation": 0,
+          "follow_up_after_event": 2,
+          "routine_cardiology": 30,
+          "stress_test": 7,
+          "medication_review": 14,
+          "annual_checkup": 365
+        }
+      }
+    },
+    {
+      "disease": "Obesity",
+      "icd_code": "E66.9",
+      "icd_description": "Obesity, unspecified",
+      "disease_details": {
+        "disease_name": "Obesity",
+        "icd_code": "E66.9",
+        "what_is_wrong": "Obesity is a medical condition involving excess body fat that increases health risks. BMI \u226530 is classified as obese, associated with increased risk of multiple chronic diseases.",
+        "precautions": [
+          "Regular health monitoring and BMI checks",
+          "Screen for related conditions (diabetes, hypertension)",
+          "Gradual weight loss approach (1-2 lbs per week)",
+          "Joint protection during activities",
+          "Mental health support if needed",
+          "Adequate sleep (7-9 hours)",
+          "Stay hydrated with water"
+        ],
+        "medications": [
+          "Orlistat (lipase inhibitor)",
+          "GLP-1 agonists (Ozempic, Saxenda)",
+          "Medications for comorbidities",
+          "Metformin (if insulin resistant)"
+        ],
+        "diet_specifications": [
+          "Caloric deficit for weight loss (500-1000 kcal/day)",
+          "High protein diet (supports satiety)",
+          "Whole foods over processed",
+          "High fiber foods",
+          "Regular meal schedules",
+          "Limit sugary beverages",
+          "Portion control",
+          "Adequate water intake"
+        ],
+        "what_to_do": [
+          "Work with healthcare team on weight loss plan",
+          "Track food intake and physical activity",
+          "Gradually increase physical activity",
+          "Seek behavioral health support if needed",
+          "Manage underlying health conditions",
+          "Get adequate sleep",
+          "Consider support groups or programs",
+          "Regular progress monitoring"
+        ],
+        "rehab_options": [
+          "Weight loss programs (intensive lifestyle intervention)",
+          "Physical therapy and exercise programs",
+          "Nutritional counseling",
+          "Behavioral therapy",
+          "Support groups"
+        ],
+        "recommended_followup_days": {
+          "initial_assessment": 7,
+          "weight_check": 14,
+          "progress_evaluation": 30,
+          "comorbidity_screening": 90,
+          "mental_health_support": 14,
+          "annual_comprehensive": 365
+        }
+      }
+    }
+  ]
+}

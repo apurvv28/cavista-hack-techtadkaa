@@ -93,3 +93,63 @@ export const getTranscript = query({
             .first();
     },
 });
+
+/**
+ * Save SOAP notes and red flags generated from backend processing
+ */
+export const saveSoapNote = mutation({
+    args: {
+        appointmentId: v.id("appointments"),
+        transcription: v.string(),
+        soap: v.object({
+            chief_complaint: v.string(),
+            history_of_present_illness: v.string(),
+            past_medical_history: v.string(),
+            medications: v.string(),
+            allergies: v.string(),
+            vitals: v.object({
+                blood_pressure: v.string(),
+                heart_rate: v.string(),
+                respiratory_rate: v.string(),
+                temperature: v.string(),
+                oxygen_saturation: v.string(),
+            }),
+            objective_findings: v.string(),
+            assessment: v.string(),
+            plan: v.string(),
+        }),
+        red_flags: v.object({
+            alerts: v.array(
+                v.object({
+                    type: v.string(),
+                    severity: v.union(v.literal("moderate"), v.literal("high"), v.literal("critical")),
+                    reason: v.string(),
+                    recommended_action: v.string(),
+                })
+            ),
+            alert_count: v.number(),
+        }),
+    },
+    handler: async (ctx, args) => {
+        return await ctx.db.insert("soap_notes", {
+            appointmentId: args.appointmentId,
+            transcription: args.transcription,
+            soap: args.soap,
+            red_flags: args.red_flags,
+            generatedAt: new Date().toISOString(),
+        });
+    },
+});
+
+/**
+ * Get SOAP note for a consultation
+ */
+export const getSoapNote = query({
+    args: { appointmentId: v.id("appointments") },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("soap_notes")
+            .withIndex("by_appointment", (q) => q.eq("appointmentId", args.appointmentId))
+            .first();
+    },
+});
