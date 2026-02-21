@@ -4,8 +4,15 @@ import { use, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Video, VideoOff, Mic, MicOff, PhoneOff,
-  FileText, Download, Save, Loader2, Users
+  Video,
+  VideoOff,
+  Mic,
+  MicOff,
+  PhoneOff,
+  FileText,
+  Download,
+  Loader2,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,42 +24,78 @@ import { useVideoCall } from "@/hooks/useVideoCall";
 import { useTranscription } from "@/hooks/useTranscription";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 
-export default function ConsultationRoomPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ConsultationRoomPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
   const { id } = use(params);
   const appointmentId = id as Id<"appointments">;
 
   const { user } = useUser();
-  const convexUser = useQuery(api.users.getUser, user?.id ? { clerkId: user.id } : "skip");
+  const convexUser = useQuery(
+    api.users.getUser,
+    user?.id ? { clerkId: user.id } : "skip",
+  );
 
   const role = convexUser?.role === "doctor" ? "Doctor" : "Patient";
 
   const {
-    localStream, remoteStream, connectionStatus,
-    startCall, joinCall, endCall, sendMessage
+    localStream,
+    remoteStream,
+    connectionStatus,
+    startCall,
+    joinCall,
+    endCall,
+    sendMessage,
   } = useVideoCall(appointmentId, convexUser?._id!, (msg) => {
     if (msg.type === "transcript") {
-      setTranscript(prev => [...prev, msg.entry]);
+      setTranscript((prev) => [...prev, msg.entry]);
     }
   });
 
-  const appointment = useQuery(api.appointments.getAppointment, { appointmentId });
-  const patient = useQuery(api.users.getUserById, appointment?.patientId ? { userId: appointment.patientId } : "skip");
-  const completeAppointmentMutation = useMutation(api.appointments.completeAppointment);
+  const appointment = useQuery(api.appointments.getAppointment, {
+    appointmentId,
+  });
+  const patient = useQuery(
+    api.users.getUserById,
+    appointment?.patientId ? { userId: appointment.patientId } : "skip",
+  );
+  const completeAppointmentMutation = useMutation(
+    api.appointments.completeAppointment,
+  );
 
   const {
-    transcript, isRecording, startTranscription,
-    stopTranscription, exportTranscript, setTranscript
+    transcript,
+    isRecording,
+    startTranscription,
+    stopTranscription,
+    exportTranscript,
+    setTranscript,
   } = useTranscription(role, (entry) => {
     sendMessage({ type: "transcript", entry });
   });
 
   const {
-    isAudioRecording, startAudioRecording, stopAudioRecording, addRemoteStreamToRecording
+    isAudioRecording,
+    startAudioRecording,
+    stopAudioRecording,
+    addRemoteStreamToRecording,
   } = useAudioRecorder();
 
   const saveTranscriptMutation = useMutation(api.consultations.saveTranscript);
   const [isSaving, setIsSaving] = useState(false);
+  const [showEndCallPrompt, setShowEndCallPrompt] = useState(false);
+  const [toast, setToast] = useState<{
+    open: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({
+    open: false,
+    message: "",
+    type: "success",
+  });
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -125,21 +168,41 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
     }
   }, [appointment?.status, endCall, stopTranscription, router]);
 
-  const handleEndCall = async () => {
+  const showToast = (
+    message: string,
+    type: "success" | "error" = "success",
+  ) => {
+    setToast({ open: true, message, type });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, open: false }));
+    }, 2500);
+  };
+
+  const finalizeAndLeave = async () => {
+    stopTranscription();
+    await endCall();
+  };
+
+  const handleEndWithoutSaving = async () => {
+    setShowEndCallPrompt(false);
+    setIsSaving(true);
     try {
-      await completeAppointmentMutation({ appointmentId });
-      // The useEffect above will handle redirection when status === "completed"
-    } catch (e) {
-      console.error("Failed to mark appointment complete:", e);
-      // Fallback: manually clean up and redirect
-      stopTranscription();
-      await endCall();
+      await finalizeAndLeave();
       router.push("/dashboard");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleSaveAndExit = async () => {
+    setShowEndCallPrompt(false);
     setIsSaving(true);
+
+    // Stop recorder and end call immediately from user's perspective,
+    // while uploads continue in background.
+    const audioBlobPromise = stopAudioRecording();
+    await finalizeAndLeave();
+
     const textContent = transcript
       .map((t) => `[${t.timestamp}] ${t.speaker}: ${t.text}`)
       .join("\n");
@@ -147,10 +210,7 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
     const effectiveName = patient?.fullName || `Appointment_${appointmentId}`;
 
     try {
-      // 1. Stop audio recording and collect the blob
-      console.log("[Save] Stopping audio recording...");
-      const audioBlob = await stopAudioRecording();
-      console.log("[Save] Audio blob:", audioBlob ? `${audioBlob.size} bytes` : "null (nothing recorded)");
+      const audioBlob = await audioBlobPromise;
 
       // 2. Save transcript to Convex Cloud
       if (textContent) {
@@ -165,41 +225,59 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
       // 3. Save transcript to local filesystem
       if (textContent) {
         try {
-          const res = await fetch("/api/save-transcript", {
+          console.log("[Save] Sending transcript to local API...");
+          await fetch("/api/save-transcript", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ patientName: effectiveName, content: textContent }),
+            body: JSON.stringify({
+              patientName: effectiveName,
+              content: textContent,
+            }),
           });
-          const json = await res.json();
-          console.log("[Save] Transcript file saved locally:", json);
         } catch (e) {
           console.error("[Save] Failed to save transcript locally:", e);
         }
       }
 
-      // 4. Save audio to local filesystem
+      // 4. Save audio to Vercel Blob
       if (audioBlob && audioBlob.size > 0) {
         try {
           const formData = new FormData();
           formData.append("audio", audioBlob, "audio.webm");
           formData.append("patientName", effectiveName);
-          const res = await fetch("/api/save-audio", { method: "POST", body: formData });
+
+          console.log("[Save] Fetching /api/save-audio...");
+          const res = await fetch("/api/save-audio", {
+            method: "POST",
+            body: formData,
+          });
+
           const json = await res.json();
-          console.log("[Save] Audio file saved locally:", json);
-        } catch (e) {
-          console.error("[Save] Failed to save audio locally:", e);
+          if (res.ok) {
+            console.log("[Save] Audio stored in Vercel Blob:", json.url);
+            showToast("Audio stored successfully.", "success");
+          } else {
+            console.error("[Save] Audio storage failed:", json);
+            showToast("Audio upload failed.", "error");
+          }
+        } catch (e: any) {
+          console.error("[Save] Failed to save audio:", e);
+          showToast("Audio upload failed.", "error");
         }
       } else {
-        console.warn("[Save] Skipping audio save — blob is null or empty.");
+        console.warn("[Save] Skipping audio save — blob is empty or null.");
+        showToast("No audio captured to upload.", "error");
       }
 
       if (textContent) exportTranscript();
-    } catch (e) {
+    } catch (e: any) {
       console.error("[Save] Unexpected error during save:", e);
+      showToast("Failed to save consultation data.", "error");
     } finally {
-      setIsSaving(false);
-      // Always end the call after saving (awaited to prevent navigation race)
-      await handleEndCall();
+      setTimeout(() => {
+        setIsSaving(false);
+        router.push("/dashboard");
+      }, 900);
     }
   };
 
@@ -221,7 +299,9 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
           </div>
           <div>
             <h1 className="font-bold text-lg">Secure Consultation</h1>
-            <p className="text-xs text-zinc-400 capitalize">Role: {role} • Status: {connectionStatus}</p>
+            <p className="text-xs text-zinc-400 capitalize">
+              Role: {role} • Status: {connectionStatus}
+            </p>
           </div>
         </div>
 
@@ -229,18 +309,28 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
           <Button
             variant="outline"
             className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 gap-2"
-            onClick={() => isRecording ? stopTranscription() : startTranscription()}
+            onClick={() =>
+              isRecording ? stopTranscription() : startTranscription()
+            }
           >
-            {isRecording ? <Mic className="w-4 h-4 text-red-500 animate-pulse" /> : <MicOff className="w-4 h-4" />}
+            {isRecording ? (
+              <Mic className="w-4 h-4 text-red-500 animate-pulse" />
+            ) : (
+              <MicOff className="w-4 h-4" />
+            )}
             {isRecording ? "Recording Live" : "Start Voice Recording"}
           </Button>
           <Button
             variant="destructive"
             className="gap-2 bg-red-600 hover:bg-red-700"
-            onClick={handleSaveAndExit}
+            onClick={() => setShowEndCallPrompt(true)}
             disabled={isSaving}
           >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <PhoneOff className="w-4 h-4" />}
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <PhoneOff className="w-4 h-4" />
+            )}
             End & Save Record
           </Button>
         </div>
@@ -262,7 +352,9 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
             ) : (
               <div className="flex flex-col items-center gap-4 text-zinc-500">
                 <Users className="w-16 h-16 opacity-20" />
-                <p className="text-sm font-medium">Waiting for other party to connect...</p>
+                <p className="text-sm font-medium">
+                  Waiting for other party to connect...
+                </p>
               </div>
             )}
           </div>
@@ -286,10 +378,18 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
 
           {/* Controls Overlay */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-4 bg-zinc-900/80 backdrop-blur-xl rounded-full border border-zinc-700 shadow-2xl z-20">
-            <Button size="icon" variant="ghost" className="rounded-full w-12 h-12 hover:bg-zinc-800">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full w-12 h-12 hover:bg-zinc-800"
+            >
               <Mic className="w-5 h-5" />
             </Button>
-            <Button size="icon" variant="ghost" className="rounded-full w-12 h-12 hover:bg-zinc-800">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full w-12 h-12 hover:bg-zinc-800"
+            >
               <Video className="w-5 h-5" />
             </Button>
             <div className="w-px h-6 bg-zinc-700 mx-2" />
@@ -297,7 +397,7 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
               size="icon"
               variant="destructive"
               className="rounded-full w-12 h-12 bg-red-600 hover:bg-red-700"
-              onClick={handleEndCall}
+              onClick={() => setShowEndCallPrompt(true)}
             >
               <PhoneOff className="w-5 h-5" />
             </Button>
@@ -313,8 +413,12 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
                   <FileText className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm tracking-tight text-white">Live Transcript</h3>
-                  <p className="text-[10px] text-zinc-500">Real-time AI capture</p>
+                  <h3 className="font-bold text-sm tracking-tight text-white">
+                    Live Transcript
+                  </h3>
+                  <p className="text-[10px] text-zinc-500">
+                    Real-time AI capture
+                  </p>
                 </div>
               </div>
               {isRecording && (
@@ -334,10 +438,14 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
                     className="space-y-1"
                   >
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold uppercase tracking-tighter ${entry.speaker === 'Doctor' ? 'text-primary' : 'text-emerald-500'}`}>
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-tighter ${entry.speaker === "Doctor" ? "text-primary" : "text-emerald-500"}`}
+                      >
                         {entry.speaker}
                       </span>
-                      <span className="text-[10px] text-zinc-600 font-medium">{entry.timestamp}</span>
+                      <span className="text-[10px] text-zinc-600 font-medium">
+                        {entry.timestamp}
+                      </span>
                     </div>
                     <p className="text-sm text-zinc-300 leading-relaxed bg-zinc-800/30 p-3 rounded-2xl rounded-tl-none border border-zinc-800/50">
                       {entry.text}
@@ -350,7 +458,10 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
               {transcript.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-30 grayscale">
                   <FileText className="w-12 h-12 mb-4" />
-                  <p className="text-xs">No conversation recorded yet. Enable recording to start transcribing.</p>
+                  <p className="text-xs">
+                    No conversation recorded yet. Enable recording to start
+                    transcribing.
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -368,6 +479,56 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
           </Card>
         </div>
       </main>
+
+      {showEndCallPrompt && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl">
+            <h3 className="text-base font-semibold text-white">
+              Save consultation before ending?
+            </h3>
+            <p className="text-sm text-zinc-400 mt-2">
+              The call will end immediately. You can save the recording to Blob
+              storage or end without saving.
+            </p>
+            <div className="mt-5 flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                onClick={() => setShowEndCallPrompt(false)}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                onClick={handleEndWithoutSaving}
+                disabled={isSaving}
+              >
+                End Without Saving
+              </Button>
+              <Button
+                variant="destructive"
+                className="bg-red-600 hover:bg-red-700"
+                onClick={handleSaveAndExit}
+                disabled={isSaving}
+              >
+                Save & End
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast.open && (
+        <div className="fixed top-4 right-4 z-50">
+          <div
+            className={`px-4 py-2 rounded-lg border text-sm shadow-lg ${toast.type === "success" ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-red-500/10 border-red-500/30 text-red-400"}`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
