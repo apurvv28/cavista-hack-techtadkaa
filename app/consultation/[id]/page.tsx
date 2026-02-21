@@ -3,9 +3,9 @@
 import { use, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Video, VideoOff, Mic, MicOff, PhoneOff, 
-  FileText, Download, Save, Loader2, Users 
+import {
+  Video, VideoOff, Mic, MicOff, PhoneOff,
+  FileText, Download, Save, Loader2, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,12 +24,12 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
 
   const { user } = useUser();
   const convexUser = useQuery(api.users.getUser, user?.id ? { clerkId: user.id } : "skip");
-  
+
   const role = convexUser?.role === "doctor" ? "Doctor" : "Patient";
-  
-  const { 
-    localStream, remoteStream, connectionStatus, 
-    startCall, joinCall, endCall, sendMessage 
+
+  const {
+    localStream, remoteStream, connectionStatus,
+    startCall, joinCall, endCall, sendMessage
   } = useVideoCall(appointmentId, convexUser?._id!, (msg) => {
     if (msg.type === "transcript") {
       setTranscript(prev => [...prev, msg.entry]);
@@ -41,7 +41,7 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
   const completeAppointmentMutation = useMutation(api.appointments.completeAppointment);
 
   const {
-    transcript, isRecording, startTranscription, 
+    transcript, isRecording, startTranscription,
     stopTranscription, exportTranscript, setTranscript
   } = useTranscription(role, (entry) => {
     sendMessage({ type: "transcript", entry });
@@ -226,16 +226,16 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 gap-2"
             onClick={() => isRecording ? stopTranscription() : startTranscription()}
           >
             {isRecording ? <Mic className="w-4 h-4 text-red-500 animate-pulse" /> : <MicOff className="w-4 h-4" />}
             {isRecording ? "Recording Live" : "Start Voice Recording"}
           </Button>
-          <Button 
-            variant="destructive" 
+          <Button
+            variant="destructive"
             className="gap-2 bg-red-600 hover:bg-red-700"
             onClick={handleSaveAndExit}
             disabled={isSaving}
@@ -253,10 +253,10 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
           {/* Remote Video (Large) */}
           <div className="absolute inset-0 flex items-center justify-center">
             {remoteStream ? (
-               <video 
+              <video
                 ref={remoteVideoRef}
-                autoPlay 
-                playsInline 
+                autoPlay
+                playsInline
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -270,11 +270,11 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
           {/* Local Video (Floating Small) */}
           <div className="absolute top-6 right-6 w-48 h-32 md:w-64 md:h-44 bg-zinc-800 rounded-2xl overflow-hidden border-2 border-zinc-700 shadow-2xl z-20">
             {localStream ? (
-              <video 
+              <video
                 ref={localVideoRef}
-                autoPlay 
+                autoPlay
                 muted // Don't hear yourself
-                playsInline 
+                playsInline
                 className="w-full h-full object-cover grayscale-[0.2]"
               />
             ) : (
@@ -287,17 +287,17 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
           {/* Controls Overlay */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-4 bg-zinc-900/80 backdrop-blur-xl rounded-full border border-zinc-700 shadow-2xl z-20">
             <Button size="icon" variant="ghost" className="rounded-full w-12 h-12 hover:bg-zinc-800">
-               <Mic className="w-5 h-5" />
+              <Mic className="w-5 h-5" />
             </Button>
-             <Button size="icon" variant="ghost" className="rounded-full w-12 h-12 hover:bg-zinc-800">
-               <Video className="w-5 h-5" />
+            <Button size="icon" variant="ghost" className="rounded-full w-12 h-12 hover:bg-zinc-800">
+              <Video className="w-5 h-5" />
             </Button>
             <div className="w-px h-6 bg-zinc-700 mx-2" />
-            <Button 
-                size="icon" 
-                variant="destructive" 
-                className="rounded-full w-12 h-12 bg-red-600 hover:bg-red-700" 
-                onClick={handleEndCall}
+            <Button
+              size="icon"
+              variant="destructive"
+              className="rounded-full w-12 h-12 bg-red-600 hover:bg-red-700"
+              onClick={handleEndCall}
             >
               <PhoneOff className="w-5 h-5" />
             </Button>
@@ -327,7 +327,7 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
               <AnimatePresence initial={false}>
                 {transcript.map((entry, idx) => (
-                  <motion.div 
+                  <motion.div
                     key={idx}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -346,24 +346,24 @@ export default function ConsultationRoomPage({ params }: { params: Promise<{ id:
                 ))}
                 <div ref={transcriptEndRef} />
               </AnimatePresence>
-              
+
               {transcript.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-30 grayscale">
-                    <FileText className="w-12 h-12 mb-4" />
-                    <p className="text-xs">No conversation recorded yet. Enable recording to start transcribing.</p>
+                  <FileText className="w-12 h-12 mb-4" />
+                  <p className="text-xs">No conversation recorded yet. Enable recording to start transcribing.</p>
                 </div>
               )}
             </CardContent>
             <div className="p-4 bg-zinc-900/80 border-t border-zinc-800">
-               <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-white text-xs gap-2"
                 onClick={exportTranscript}
                 disabled={transcript.length === 0}
-               >
-                 <Download className="w-3.5 h-3.5" />
-                 Download Transcript (.txt)
-               </Button>
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download Transcript (.txt)
+              </Button>
             </div>
           </Card>
         </div>
