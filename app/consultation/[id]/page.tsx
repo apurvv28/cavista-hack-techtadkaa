@@ -339,7 +339,7 @@ export default function ConsultationRoomPage({
       {/* Main Grid */}
       <main className="flex-1 flex flex-col lg:flex-row gap-4 p-4 min-h-0">
         {/* Video Area */}
-        <div className="flex-[3] relative bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl">
+        <div className="flex-3 relative bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl">
           {/* Remote Video (Large) */}
           <div className="absolute inset-0 flex items-center justify-center">
             {remoteStream ? (

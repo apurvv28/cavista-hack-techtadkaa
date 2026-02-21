@@ -16,6 +16,7 @@ if not GROK_API_KEY:
 def transcribe_audio_with_grok(audio_path):
 
     url = "https://api.groq.com/openai/v1/audio/transcriptions"
+    transcription_model = os.getenv("GROQ_TRANSCRIPTION_MODEL", "whisper-large-v3-turbo")
 
     with open(audio_path, "rb") as audio:
         response = requests.post(
@@ -25,12 +26,21 @@ def transcribe_audio_with_grok(audio_path):
             },
             files={"file": audio},
             data={
-                "model": "whisper-1"
-            }
+                "model": transcription_model
+            },
+            timeout=60
         )
 
     print("Transcription Response:", response.text)
-    return response.json().get("text")
+
+    if not response.ok:
+        raise Exception(f"Groq transcription error: {response.status_code} - {response.text}")
+
+    text = response.json().get("text")
+    if not text:
+        raise Exception("Transcription returned empty text")
+
+    return text
 
 
 # -------------------------------

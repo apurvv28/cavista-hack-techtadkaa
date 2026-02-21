@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-02-21T22:51:13.273075",
+  "total_mappings": 4,
+  "mappings": [
+    {
+      "disease": "Hypertension",
+      "icd_code": "I10",
+      "icd_description": "Essential (primary) hypertension"
+    },
+    {
+      "disease": "Type 2 Diabetes Mellitus",
+      "icd_code": "E11.9",
+      "icd_description": "Type 2 diabetes mellitus without complications"
+    },
+    {
+      "disease": "Chest Pain",
+      "icd_code": "R07.9",
+      "icd_description": "Chest pain, unspecified"
+    },
+    {
+      "disease": "Obesity",
+      "icd_code": "E66.9",
+      "icd_description": "Obesity, unspecified"
+    }
+  ]
+}

@@ -45,4 +45,40 @@ export default defineSchema({
         generatedAt: v.string(),
     })
         .index("by_appointment", ["appointmentId"]),
+
+    // SOAP Notes (generated from transcripts via backend)
+    soap_notes: defineTable({
+        appointmentId: v.id("appointments"),
+        transcription: v.string(),
+        soap: v.object({
+            chief_complaint: v.string(),
+            history_of_present_illness: v.string(),
+            past_medical_history: v.string(),
+            medications: v.string(),
+            allergies: v.string(),
+            vitals: v.object({
+                blood_pressure: v.string(),
+                heart_rate: v.string(),
+                respiratory_rate: v.string(),
+                temperature: v.string(),
+                oxygen_saturation: v.string(),
+            }),
+            objective_findings: v.string(),
+            assessment: v.string(),
+            plan: v.string(),
+        }),
+        red_flags: v.object({
+            alerts: v.array(
+                v.object({
+                    type: v.string(),
+                    severity: v.union(v.literal("moderate"), v.literal("high"), v.literal("critical")),
+                    reason: v.string(),
+                    recommended_action: v.string(),
+                })
+            ),
+            alert_count: v.number(),
+        }),
+        generatedAt: v.string(),
+    })
+        .index("by_appointment", ["appointmentId"]),
 });
