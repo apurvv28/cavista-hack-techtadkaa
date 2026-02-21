@@ -81,4 +81,18 @@ export default defineSchema({
         generatedAt: v.string(),
     })
         .index("by_appointment", ["appointmentId"]),
+
+    // ABHA (Ayushman Bharat Health Account) ID Linking
+    abha_links: defineTable({
+        userId: v.id("users"),                  // Reference to our Convex users table
+        abhaId: v.string(),                      // 14-digit ABHA ID (XX-XXXX-XXXX-XXXX)
+        abhaName: v.string(),                    // Sandbox-returned patient display name
+        mobile: v.string(),                      // Last 4 digits of registered mobile
+        linkedAt: v.string(),                    // ISO string timestamp of linking
+        autoSync: v.boolean(),                   // Whether to auto-sync new reports
+        syncedReportIds: v.array(v.string()),    // List of appointment IDs synced to ABHA
+        lastSyncAt: v.optional(v.string()),      // ISO string of last sync
+    })
+        .index("by_user", ["userId"])
+        .index("by_abha_id", ["abhaId"]),
 });
