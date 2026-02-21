@@ -63,7 +63,8 @@ export function useVideoCall(
 
         pc.ontrack = (event) => {
             if (event.streams && event.streams[0]) {
-                setRemoteStream(event.streams[0]);
+                const streamWithCurrentTracks = new MediaStream(event.streams[0].getTracks());
+                setRemoteStream(streamWithCurrentTracks);
             }
         };
 

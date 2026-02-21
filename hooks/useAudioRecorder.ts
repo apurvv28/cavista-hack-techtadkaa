@@ -6,6 +6,7 @@ export function useAudioRecorder() {
     const audioChunksRef = useRef<Blob[]>([]);
     const audioContextRef = useRef<AudioContext | null>(null);
     const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+    const addedRemoteAudioTrackIdsRef = useRef<Set<string>>(new Set());
 
     const startRecording = useCallback(async (localStream: MediaStream) => {
         try {
@@ -46,46 +47,57 @@ export function useAudioRecorder() {
 
             mediaRecorderRef.current = mediaRecorder;
             audioChunksRef.current = [];
+            addedRemoteAudioTrackIdsRef.current.clear();
 
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) {
                     audioChunksRef.current.push(event.data);
-                    console.log(`Audio chunk captured: ${event.data.size} bytes (total chunks: ${audioChunksRef.current.length})`);
+                    console.log(`[Recorder] Chunk captured: ${event.data.size} bytes. Total chunks: ${audioChunksRef.current.length}`);
+                } else {
+                    console.warn("[Recorder] Received empty or invalid chunk");
                 }
             };
 
             mediaRecorder.onerror = (event) => {
-                console.error("MediaRecorder error:", event);
+                console.error("[Recorder] MediaRecorder error:", event);
             };
 
-            // Use a 1-second timeslice so data accumulates continuously
-            // Without this, ondataavailable only fires on stop() — if stop() fails, we lose everything
             mediaRecorder.start(1000);
             setIsRecording(true);
-            console.log("Audio recording started. MIME type:", mediaRecorder.mimeType);
+            console.log("[Recorder] Audio recording started. State:", mediaRecorder.state);
         } catch (err) {
-            console.error("Failed to start audio recording:", err);
+            console.error("[Recorder] Failed to start audio recording:", err);
         }
     }, []);
 
     const addRemoteStream = useCallback((remoteStream: MediaStream) => {
         if (!audioContextRef.current || !destinationRef.current) {
-            console.warn("Cannot add remote stream — AudioContext not initialized yet");
+            console.warn("[Recorder] Cannot add remote stream — AudioContext not initialized yet");
             return;
         }
 
         const remoteAudioTracks = remoteStream.getAudioTracks();
         if (remoteAudioTracks.length === 0) {
-            console.warn("No audio tracks found in remote stream");
+            console.warn("[Recorder] No audio tracks found in remote stream");
+            return;
+        }
+
+        const hasNewAudioTrack = remoteAudioTracks.some(
+            (track) => !addedRemoteAudioTrackIdsRef.current.has(track.id)
+        );
+
+        if (!hasNewAudioTrack) {
+            console.log("[Recorder] Remote audio stream already connected, skipping duplicate connect");
             return;
         }
 
         try {
             const remoteSource = audioContextRef.current.createMediaStreamSource(remoteStream);
             remoteSource.connect(destinationRef.current);
-            console.log("Remote audio stream mixed into recording:", remoteAudioTracks[0].label);
+            remoteAudioTracks.forEach((track) => addedRemoteAudioTrackIdsRef.current.add(track.id));
+            console.log("[Recorder] Remote audio mixed into recording:", remoteAudioTracks[0].label);
         } catch (e) {
-            console.error("Error adding remote stream to recording:", e);
+            console.error("[Recorder] Error mixing remote stream:", e);
         }
     }, []);
 
@@ -93,34 +105,44 @@ export function useAudioRecorder() {
         return new Promise((resolve) => {
             const recorder = mediaRecorderRef.current;
 
-            if (!recorder || recorder.state === "inactive") {
-                console.warn("stopRecording called but MediaRecorder is not active. State:", recorder?.state ?? "null");
+            if (!recorder) {
+                console.error("[Recorder] stopRecording called but mediaRecorderRef is null");
                 resolve(null);
                 return;
             }
 
-            console.log(`Stopping MediaRecorder. State: ${recorder.state}. Chunks so far: ${audioChunksRef.current.length}`);
+            console.log("[Recorder] stopRecording called. Current state:", recorder.state, "Chunks:", audioChunksRef.current.length);
+
+            if (recorder.state === "inactive") {
+                console.warn("[Recorder] Recorder already inactive. Attempting to create blob from current chunks.");
+                if (audioChunksRef.current.length > 0) {
+                    const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+                    resolve(blob);
+                } else {
+                    resolve(null);
+                }
+                return;
+            }
 
             recorder.onstop = () => {
                 const chunks = audioChunksRef.current;
-                console.log(`Recording stopped. Total chunks: ${chunks.length}`);
+                console.log(`[Recorder] Recording stopped. Captured ${chunks.length} chunks.`);
 
                 if (chunks.length === 0) {
-                    console.error("No audio chunks captured! The recording was empty.");
+                    console.error("[Recorder] No audio chunks captured! The recording was empty.");
                     resolve(null);
                     return;
                 }
 
                 const mimeType = recorder.mimeType || "audio/webm";
                 const audioBlob = new Blob(chunks, { type: mimeType });
-                console.log(`Audio blob created: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
+                console.log(`[Recorder] Audio blob created: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
 
                 setIsRecording(false);
-
                 if (audioContextRef.current) {
                     audioContextRef.current.close().catch(console.error);
                 }
-
+                addedRemoteAudioTrackIdsRef.current.clear();
                 resolve(audioBlob);
             };
 
