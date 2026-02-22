@@ -338,8 +338,12 @@ export default function ConsultationRoomPage({
       </header>
 
       {/* Main Grid */}
-      <main className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 p-4 min-h-0">
-        <div className="min-h-0 flex flex-col gap-4">
+      <main
+        className={`flex-1 p-4 min-h-0 gap-4 ${convexUser.role === "doctor" ? "grid grid-cols-1 xl:grid-cols-2" : "flex flex-col xl:flex-row"}`}
+      >
+        <div
+          className={`min-h-0 flex ${convexUser.role === "doctor" ? "flex-col gap-4" : "xl:basis-3/5"}`}
+        >
           <div className="relative flex-3 min-h-90 bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl">
             <div className="absolute inset-0 flex items-center justify-center">
               {remoteStream ? (
@@ -402,71 +406,142 @@ export default function ConsultationRoomPage({
             </div>
           </div>
 
-          <Card className="flex-1 min-h-55 bg-[#09090b] border-zinc-800 overflow-hidden flex flex-col rounded-[2rem] ring-1 ring-zinc-800/50">
-            <div className="px-4 py-3 border-b border-zinc-800/50 bg-[#0c0c0e]/50 backdrop-blur-sm flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-primary/10 rounded-lg">
-                  <FileText className="w-3.5 h-3.5 text-primary" />
+          {convexUser.role === "doctor" ? (
+            <Card className="flex-1 min-h-55 bg-[#09090b] border-zinc-800 overflow-hidden flex flex-col rounded-[2rem] ring-1 ring-zinc-800/50">
+              <div className="px-4 py-3 border-b border-zinc-800/50 bg-[#0c0c0e]/50 backdrop-blur-sm flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-primary/10 rounded-lg">
+                    <FileText className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-xs tracking-tight text-white">
+                    Live Transcript
+                  </h3>
                 </div>
-                <h3 className="font-semibold text-xs tracking-tight text-white">
-                  Live Transcript
-                </h3>
+                {isRecording && (
+                  <span className="flex items-center gap-1 text-[9px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                    Recording
+                  </span>
+                )}
               </div>
-              {isRecording && (
-                <span className="flex items-center gap-1 text-[9px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">
-                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                  Recording
-                </span>
-              )}
-            </div>
-            <CardContent className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-              <AnimatePresence initial={false}>
-                {transcript.map((entry, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[9px] font-bold uppercase tracking-tighter ${entry.speaker === "Doctor" ? "text-primary" : "text-emerald-500"}`}
-                      >
-                        {entry.speaker}
-                      </span>
-                      <span className="text-[9px] text-zinc-600 font-medium">
-                        {entry.timestamp}
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-300 leading-relaxed bg-zinc-800/30 p-2.5 rounded-xl border border-zinc-800/50">
-                      {entry.text}
-                    </p>
-                  </motion.div>
-                ))}
-                <div ref={transcriptEndRef} />
-              </AnimatePresence>
+              <CardContent className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+                <AnimatePresence initial={false}>
+                  {transcript.map((entry, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="space-y-1"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[9px] font-bold uppercase tracking-tighter ${entry.speaker === "Doctor" ? "text-primary" : "text-emerald-500"}`}
+                        >
+                          {entry.speaker}
+                        </span>
+                        <span className="text-[9px] text-zinc-600 font-medium">
+                          {entry.timestamp}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-300 leading-relaxed bg-zinc-800/30 p-2.5 rounded-xl border border-zinc-800/50">
+                        {entry.text}
+                      </p>
+                    </motion.div>
+                  ))}
+                  <div ref={transcriptEndRef} />
+                </AnimatePresence>
 
-              {transcript.length === 0 && (
-                <div className="h-full flex items-center justify-center text-center p-4 opacity-40">
-                  <p className="text-xs text-zinc-500">
-                    No conversation recorded yet.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-            <div className="p-3 bg-zinc-900/80 border-t border-zinc-800">
-              <Button
-                variant="outline"
-                className="w-full text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-white text-xs gap-2"
-                onClick={exportTranscript}
-                disabled={transcript.length === 0}
-              >
-                <Download className="w-3.5 h-3.5" />
-                Download Transcript (.txt)
-              </Button>
-            </div>
-          </Card>
+                {transcript.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-center p-4 opacity-40">
+                    <p className="text-xs text-zinc-500">
+                      No conversation recorded yet.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+              <div className="p-3 bg-zinc-900/80 border-t border-zinc-800">
+                <Button
+                  variant="outline"
+                  className="w-full text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-white text-xs gap-2"
+                  onClick={exportTranscript}
+                  disabled={transcript.length === 0}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Transcript (.txt)
+                </Button>
+              </div>
+            </Card>
+          ) : null}
         </div>
+
+        {convexUser.role !== "doctor" ? (
+          <div className="min-h-0 xl:basis-2/5">
+            <Card className="h-full bg-[#09090b] border-zinc-800 overflow-hidden flex flex-col rounded-[2rem] ring-1 ring-zinc-800/50">
+              <div className="px-4 py-3 border-b border-zinc-800/50 bg-[#0c0c0e]/50 backdrop-blur-sm flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-primary/10 rounded-lg">
+                    <FileText className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-xs tracking-tight text-white">
+                    Live Transcript
+                  </h3>
+                </div>
+                {isRecording && (
+                  <span className="flex items-center gap-1 text-[9px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                    Recording
+                  </span>
+                )}
+              </div>
+              <CardContent className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+                <AnimatePresence initial={false}>
+                  {transcript.map((entry, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="space-y-1"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[9px] font-bold uppercase tracking-tighter ${entry.speaker === "Doctor" ? "text-primary" : "text-emerald-500"}`}
+                        >
+                          {entry.speaker}
+                        </span>
+                        <span className="text-[9px] text-zinc-600 font-medium">
+                          {entry.timestamp}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-300 leading-relaxed bg-zinc-800/30 p-2.5 rounded-xl border border-zinc-800/50">
+                        {entry.text}
+                      </p>
+                    </motion.div>
+                  ))}
+                  <div ref={transcriptEndRef} />
+                </AnimatePresence>
+
+                {transcript.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-center p-4 opacity-40">
+                    <p className="text-xs text-zinc-500">
+                      No conversation recorded yet.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+              <div className="p-3 bg-zinc-900/80 border-t border-zinc-800">
+                <Button
+                  variant="outline"
+                  className="w-full text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-white text-xs gap-2"
+                  onClick={exportTranscript}
+                  disabled={transcript.length === 0}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Transcript (.txt)
+                </Button>
+              </div>
+            </Card>
+          </div>
+        ) : null}
 
         {convexUser.role === "doctor" ? (
           <div className="min-h-0 overflow-y-auto custom-scrollbar rounded-3xl bg-white p-3">
