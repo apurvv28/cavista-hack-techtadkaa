@@ -30,7 +30,7 @@ export default function RootLayout({
       <ConvexClientProvider>
         <html lang="en">
           <body
-            className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+            className={`${geistSans.className} ${geistSans.variable} ${geistMono.variable} antialiased`}
           >
             {children}
           </body>

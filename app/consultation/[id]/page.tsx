@@ -468,17 +468,19 @@ export default function ConsultationRoomPage({
           </Card>
         </div>
 
-        <div className="min-h-0 overflow-y-auto custom-scrollbar rounded-3xl bg-white p-3">
-          <PrescriptionForm
-            embedded
-            patientContext={{
-              patientId: appointment?.patientId
-                ? String(appointment.patientId)
-                : "",
-              patientName: patient?.fullName || "",
-            }}
-          />
-        </div>
+        {convexUser.role === "doctor" ? (
+          <div className="min-h-0 overflow-y-auto custom-scrollbar rounded-3xl bg-white p-3">
+            <PrescriptionForm
+              embedded
+              patientContext={{
+                patientId: appointment?.patientId
+                  ? String(appointment.patientId)
+                  : "",
+                patientName: patient?.fullName || "",
+              }}
+            />
+          </div>
+        ) : null}
       </main>
 
       {showEndCallPrompt && (

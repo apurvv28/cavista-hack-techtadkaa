@@ -165,7 +165,7 @@ export const HeroSection = () => {
               </motion.div>
 
               <motion.h1
-                className="text-5xl font-bold tracking-tight text-zinc-900 dark:text-white lg:text-7xl mb-6 relative"
+                className="text-5xl font-bold tracking-tight text-zinc-900 dark:text-white lg:text-7xl mb-6 relative "
                 whileHover={{ scale: 1.01 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
