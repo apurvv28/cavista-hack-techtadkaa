@@ -202,7 +202,7 @@ export default function DoctorDashboard() {
           </CardHeader>
           <CardContent className="space-y-6">
             {appointments &&
-            appointments.filter((a: any) => a.status !== "completed").length >
+              appointments.filter((a: any) => a.status !== "completed").length >
               0 ? (
               appointments
                 .filter((a: any) => a.status !== "completed")
@@ -216,7 +216,7 @@ export default function DoctorDashboard() {
                       <Activity className="h-4 w-4" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none flex items-center gap-2">
+                      <div className="text-sm font-medium leading-none flex items-center gap-2">
                         {alert.patientId || "Patient"}
                         <Badge
                           variant="outline"

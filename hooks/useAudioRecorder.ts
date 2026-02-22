@@ -106,7 +106,7 @@ export function useAudioRecorder() {
             const recorder = mediaRecorderRef.current;
 
             if (!recorder) {
-                console.error("[Recorder] stopRecording called but mediaRecorderRef is null");
+                console.warn("[Recorder] stopRecording called but audio recording was never started (mediaRecorderRef is null). This is expected if the call never connected.");
                 resolve(null);
                 return;
             }

@@ -57,6 +57,12 @@ export default function ConsultationRoomPage({
     if (msg.type === "transcript") {
       setTranscript((prev) => [...prev, msg.entry]);
     }
+  }, async () => {
+    // Remote party ended the call — mirror the end on this side too
+    console.log("[Consultation] Remote party ended call, closing this side.");
+    stopTranscription();
+    await endCall();
+    router.push("/dashboard");
   });
 
   const appointment = useQuery(api.appointments.getAppointment, {
