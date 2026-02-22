@@ -30,6 +30,11 @@ export default function PatientDashboard() {
     convexUser?._id ? { userId: convexUser._id } : "skip",
   );
 
+  const queueStatus = useQuery(
+    api.appointments.getPatientQueueStatus,
+    convexUser?._id ? { patientId: convexUser._id } : "skip",
+  );
+
   const prescriptions = useQuery(
     api.users.getPrescriptionsByPatientId,
     convexUser?._id ? { patientId: String(convexUser._id) } : "skip",
@@ -136,6 +141,13 @@ export default function PatientDashboard() {
                     Status: {nextScheduledAppt.status}
                   </div>
                 </div>
+                {queueStatus && (
+                  <div className="mt-3 text-xs text-zinc-600">
+                    Queue #{queueStatus.queueIndex} · ETA{" "}
+                    {queueStatus.estimatedWaitMinutes} min · Risk{" "}
+                    {queueStatus.patientRiskScore}
+                  </div>
+                )}
               </>
             ) : (
               <div className="text-sm text-zinc-500">

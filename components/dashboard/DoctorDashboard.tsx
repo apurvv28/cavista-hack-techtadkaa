@@ -37,9 +37,17 @@ export default function DoctorDashboard() {
     convexUser?._id ? { userId: convexUser._id } : "skip",
   );
 
-  const activeOnlineAppt = appointments?.find(
-    (a: any) => a.type === "online" && a.status === "scheduled",
+  const doctorQueue = useQuery(
+    api.appointments.getDoctorQueue,
+    convexUser?._id ? { doctorId: convexUser._id } : "skip",
   );
+
+  const activeOnlineAppt = doctorQueue?.find(
+    (entry: any) =>
+      entry?.queueIndex === 1 &&
+      entry?.appointment?.type === "online" &&
+      entry?.appointment?.status === "scheduled",
+  )?.appointment;
 
   const handleCompleteOffline = async (appointmentId: Id<"appointments">) => {
     try {
@@ -201,53 +209,59 @@ export default function DoctorDashboard() {
             <CardTitle>Priority Triage Queue</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {appointments &&
-              appointments.filter((a: any) => a.status !== "completed").length >
-              0 ? (
-              appointments
-                .filter((a: any) => a.status !== "completed")
-                .slice(0, 2)
-                .map((alert: any, i: number) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-4 pb-4 border-b border-zinc-100 dark:border-zinc-800 last:border-0 last:pb-0"
-                  >
-                    <div className="p-2 rounded-full bg-primary/20 text-primary">
-                      <Activity className="h-4 w-4" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-medium leading-none flex items-center gap-2">
-                        {alert.patientId || "Patient"}
-                        <Badge
-                          variant="outline"
-                          className="border-primary text-primary"
-                        >
-                          {alert.type === "online" ? "ONLINE" : "OFFLINE"}
-                        </Badge>
-                        {alert.type === "offline" ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon-sm"
-                            className="border-emerald-300 text-emerald-600 hover:bg-emerald-50"
-                            onClick={() => handleCompleteOffline(alert._id)}
-                            disabled={completingId === alert._id}
-                            title="Mark offline consultation complete"
-                          >
-                            {completingId === alert._id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Check className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                        ) : null}
-                      </p>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        {new Date(alert.scheduledAt).toLocaleString()}
-                      </p>
-                    </div>
+            {doctorQueue && doctorQueue.length > 0 ? (
+              doctorQueue.slice(0, 3).map((alert: any, i: number) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-4 pb-4 border-b border-zinc-100 dark:border-zinc-800 last:border-0 last:pb-0"
+                >
+                  <div className="p-2 rounded-full bg-primary/20 text-primary">
+                    <Activity className="h-4 w-4" />
                   </div>
-                ))
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium leading-none flex items-center gap-2">
+                      {alert.patientId || "Patient"}
+                      <Badge
+                        variant="outline"
+                        className="border-primary text-primary"
+                      >
+                        {alert.appointment?.type === "online"
+                          ? "ONLINE"
+                          : "OFFLINE"}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className="border-amber-300 text-amber-700"
+                      >
+                        Risk {alert.patientRiskScore}
+                      </Badge>
+                      {alert.appointment?.type === "offline" ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          className="border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                          onClick={() =>
+                            handleCompleteOffline(alert.appointment._id)
+                          }
+                          disabled={completingId === alert.appointment._id}
+                          title="Mark offline consultation complete"
+                        >
+                          {completingId === alert.appointment._id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      ) : null}
+                    </div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      Queue #{alert.queueIndex} · ETA{" "}
+                      {alert.estimatedWaitMinutes} min
+                    </p>
+                  </div>
+                </div>
+              ))
             ) : (
               <div className="text-sm text-zinc-500">
                 No pending appointments
