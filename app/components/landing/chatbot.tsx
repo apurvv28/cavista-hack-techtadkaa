@@ -147,7 +147,7 @@ export default function ChatbotPopup() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-5 right-5 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:scale-105 transition"
+        className="fixed bottom-5 right-5 bg-red-800 text-white p-4 rounded-full shadow-lg hover:scale-105 transition"
       >
         💬
       </button>
