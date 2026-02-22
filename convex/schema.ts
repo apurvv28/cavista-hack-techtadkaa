@@ -81,4 +81,31 @@ export default defineSchema({
         generatedAt: v.string(),
     })
         .index("by_appointment", ["appointmentId"]),
+
+    // Prescription documents stored in Vercel Blob with user linkage
+    prescriptions: defineTable({
+        doctorId: v.id("users"),
+        doctorClerkId: v.string(),
+        doctorName: v.string(),
+        doctorEmail: v.string(),
+        patientId: v.string(),
+        patientName: v.string(),
+        patientAge: v.string(),
+        patientWeight: v.string(),
+        prescriptionDate: v.string(),
+        blobUrl: v.string(),
+        medicines: v.array(
+            v.object({
+                medicine: v.string(),
+                dosage: v.string(),
+                morning: v.boolean(),
+                afternoon: v.boolean(),
+                evening: v.boolean(),
+            }),
+        ),
+        createdAt: v.string(),
+    })
+        .index("by_doctor", ["doctorId"])
+        .index("by_doctor_clerk_id", ["doctorClerkId"])
+        .index("by_patient_id", ["patientId"]),
 });
