@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Expensio",
-  description: "Receipt AI Manager",
+  title: "Smart EMR - AI-Powered Prescription Management",
+  description:
+    "A modern EMR system leveraging AI to streamline prescription management, enhance doctor-patient communication, and improve healthcare outcomes.",
 };
 
 export default function RootLayout({
@@ -29,7 +30,7 @@ export default function RootLayout({
       <ConvexClientProvider>
         <html lang="en">
           <body
-            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+            className={`${geistSans.className} ${geistSans.variable} ${geistMono.variable} antialiased`}
           >
             {children}
           </body>

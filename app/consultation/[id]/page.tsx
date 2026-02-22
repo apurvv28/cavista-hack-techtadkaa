@@ -23,6 +23,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useVideoCall } from "@/hooks/useVideoCall";
 import { useTranscription } from "@/hooks/useTranscription";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
+import { PrescriptionForm } from "@/components/documents/PrescriptionForm";
 
 export default function ConsultationRoomPage({
   params,
@@ -40,6 +41,7 @@ export default function ConsultationRoomPage({
   );
 
   const role = convexUser?.role === "doctor" ? "Doctor" : "Patient";
+  const postCallRoute = "/dashboard";
 
   const {
     localStream,
@@ -49,6 +51,8 @@ export default function ConsultationRoomPage({
     joinCall,
     endCall,
     sendMessage,
+    setAudioEnabled,
+    setVideoEnabled,
   } = useVideoCall(appointmentId, convexUser?._id!, (msg) => {
     if (msg.type === "transcript") {
       setTranscript((prev) => [...prev, msg.entry]);
@@ -93,6 +97,8 @@ export default function ConsultationRoomPage({
   const saveTranscriptMutation = useMutation(api.consultations.saveTranscript);
   const [isSaving, setIsSaving] = useState(false);
   const [showEndCallPrompt, setShowEndCallPrompt] = useState(false);
+  const [isMicEnabled, setIsMicEnabled] = useState(true);
+  const [isCameraEnabled, setIsCameraEnabled] = useState(true);
   const [toast, setToast] = useState<{
     open: boolean;
     message: string;
@@ -123,6 +129,14 @@ export default function ConsultationRoomPage({
       }
     }
   }, [remoteStream]);
+
+  useEffect(() => {
+    if (!localStream) return;
+    const audioTrack = localStream.getAudioTracks()[0];
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (audioTrack) setIsMicEnabled(audioTrack.enabled);
+    if (videoTrack) setIsCameraEnabled(videoTrack.enabled);
+  }, [localStream]);
 
   // Sync state: Start/Join call depending on role or availability
   useEffect(() => {
@@ -168,11 +182,11 @@ export default function ConsultationRoomPage({
       const timeout = setTimeout(() => {
         stopTranscription();
         endCall();
-        router.push("/dashboard");
+        router.push(postCallRoute);
       }, 1000);
       return () => clearTimeout(timeout);
     }
-  }, [appointment?.status, endCall, stopTranscription, router]);
+  }, [appointment?.status, endCall, stopTranscription, router, postCallRoute]);
 
   const showToast = (
     message: string,
@@ -187,14 +201,41 @@ export default function ConsultationRoomPage({
   const finalizeAndLeave = async () => {
     stopTranscription();
     await endCall();
+    await completeAppointmentMutation({ appointmentId });
+  };
+
+  const safeCompleteAndLeave = async () => {
+    try {
+      await finalizeAndLeave();
+      showToast("Consultation completed.", "success");
+    } catch (error) {
+      console.error("[Call] Failed to finalize call cleanly:", error);
+      showToast("Call ended, but status update failed.", "error");
+    }
+  };
+
+  const toggleMic = () => {
+    const next = !isMicEnabled;
+    const result = setAudioEnabled(next);
+    if (result !== null) {
+      setIsMicEnabled(result);
+    }
+  };
+
+  const toggleCamera = async () => {
+    const next = !isCameraEnabled;
+    const result = await setVideoEnabled(next);
+    if (result !== null) {
+      setIsCameraEnabled(result);
+    }
   };
 
   const handleEndWithoutSaving = async () => {
     setShowEndCallPrompt(false);
     setIsSaving(true);
     try {
-      await finalizeAndLeave();
-      router.push("/dashboard");
+      await safeCompleteAndLeave();
+      router.push(postCallRoute);
     } finally {
       setIsSaving(false);
     }
@@ -207,7 +248,7 @@ export default function ConsultationRoomPage({
     // Stop recorder and end call immediately from user's perspective,
     // while uploads continue in background.
     const audioBlobPromise = stopAudioRecording();
-    await finalizeAndLeave();
+    await safeCompleteAndLeave();
 
     const textContent = transcript
       .map((t) => `[${t.timestamp}] ${t.speaker}: ${t.text}`)
@@ -282,7 +323,7 @@ export default function ConsultationRoomPage({
     } finally {
       setTimeout(() => {
         setIsSaving(false);
-        router.push("/dashboard");
+        router.push(postCallRoute);
       }, 900);
     }
   };
@@ -296,16 +337,16 @@ export default function ConsultationRoomPage({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-[#f5f5f7] text-zinc-900 flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50 backdrop-blur-md relative z-10">
+      <header className="px-6 py-4 border-b border-zinc-200/80 flex items-center justify-between bg-white/80 backdrop-blur-xl relative z-10">
         <div className="flex items-center gap-4">
           <div className="p-2 bg-primary/10 rounded-lg">
             <Video className="w-5 h-5 text-primary" />
           </div>
           <div>
             <h1 className="font-bold text-lg">Secure Consultation</h1>
-            <p className="text-xs text-zinc-400 capitalize">
+            <p className="text-xs text-zinc-500 capitalize">
               Role: {role} • Status: {connectionStatus}
             </p>
           </div>
@@ -314,7 +355,7 @@ export default function ConsultationRoomPage({
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 gap-2"
+            className="border-zinc-300 bg-white hover:bg-zinc-100 text-zinc-700 gap-2"
             onClick={() =>
               isRecording ? stopTranscription() : startTranscription()
             }
@@ -343,163 +384,250 @@ export default function ConsultationRoomPage({
       </header>
 
       {/* Main Grid */}
-      <main className="flex-1 flex flex-col lg:flex-row gap-4 p-4 min-h-0">
-        {/* Video Area */}
-        <div className="flex-3 relative bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl">
-          {/* Remote Video (Large) */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            {remoteStream ? (
-              <video
-                ref={remoteVideoRef}
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="flex flex-col items-center gap-4 text-zinc-500">
-                <Users className="w-16 h-16 opacity-20" />
-                <p className="text-sm font-medium">
-                  Waiting for other party to connect...
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Local Video (Floating Small) */}
-          <div className="absolute top-6 right-6 w-48 h-32 md:w-64 md:h-44 bg-zinc-800 rounded-2xl overflow-hidden border-2 border-zinc-700 shadow-2xl z-20">
-            {localStream ? (
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted // Don't hear yourself
-                playsInline
-                className="w-full h-full object-cover grayscale-[0.2]"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <VideoOff className="w-6 h-6 text-zinc-600" />
-              </div>
-            )}
-          </div>
-
-          {/* Controls Overlay */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-4 bg-zinc-900/80 backdrop-blur-xl rounded-full border border-zinc-700 shadow-2xl z-20">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-full w-12 h-12 hover:bg-zinc-800"
-            >
-              <Mic className="w-5 h-5" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-full w-12 h-12 hover:bg-zinc-800"
-            >
-              <Video className="w-5 h-5" />
-            </Button>
-            <div className="w-px h-6 bg-zinc-700 mx-2" />
-            <Button
-              size="icon"
-              variant="destructive"
-              className="rounded-full w-12 h-12 bg-red-600 hover:bg-red-700"
-              onClick={() => setShowEndCallPrompt(true)}
-            >
-              <PhoneOff className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Sidebar: Transcripts */}
-        <div className="flex-1 min-w-[320px] lg:max-w-md flex flex-col gap-4">
-          <Card className="flex-1 bg-[#09090b] border-zinc-800 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col rounded-[2rem] border-t-0 ring-1 ring-zinc-800/50">
-            <div className="p-6 border-b border-zinc-800/50 bg-[#0c0c0e]/50 backdrop-blur-sm flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-xl">
-                  <FileText className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm tracking-tight text-white">
-                    Live Transcript
-                  </h3>
-                  <p className="text-[10px] text-zinc-500">
-                    Real-time AI capture
+      <main
+        className={`flex-1 p-4 min-h-0 gap-4 ${convexUser.role === "doctor" ? "grid grid-cols-1 xl:grid-cols-2" : "flex flex-col xl:flex-row"}`}
+      >
+        <div
+          className={`min-h-0 flex ${convexUser.role === "doctor" ? "flex-col gap-4" : "xl:basis-3/5"}`}
+        >
+          <div className="relative flex-3 min-h-90 bg-black/90 rounded-3xl overflow-hidden border border-zinc-200 shadow-xl">
+            <div className="absolute inset-0 flex items-center justify-center">
+              {remoteStream ? (
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-4 text-zinc-500">
+                  <Users className="w-16 h-16 opacity-20" />
+                  <p className="text-sm font-medium">
+                    Waiting for other party to connect...
                   </p>
                 </div>
-              </div>
-              {isRecording && (
-                <span className="flex items-center gap-1 text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">
-                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                  Recording
-                </span>
               )}
             </div>
-            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-              <AnimatePresence initial={false}>
-                {transcript.map((entry, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-tighter ${entry.speaker === "Doctor" ? "text-primary" : "text-emerald-500"}`}
-                      >
-                        {entry.speaker}
-                      </span>
-                      <span className="text-[10px] text-zinc-600 font-medium">
-                        {entry.timestamp}
-                      </span>
-                    </div>
-                    <p className="text-sm text-zinc-300 leading-relaxed bg-zinc-800/30 p-3 rounded-2xl rounded-tl-none border border-zinc-800/50">
-                      {entry.text}
-                    </p>
-                  </motion.div>
-                ))}
-                <div ref={transcriptEndRef} />
-              </AnimatePresence>
 
-              {transcript.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-30 grayscale">
-                  <FileText className="w-12 h-12 mb-4" />
-                  <p className="text-xs">
-                    No conversation recorded yet. Enable recording to start
-                    transcribing.
-                  </p>
+            <div className="absolute top-6 right-6 w-48 h-32 md:w-64 md:h-44 bg-black/70 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl z-20">
+              {localStream ? (
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover grayscale-[0.2]"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <VideoOff className="w-6 h-6 text-zinc-600" />
                 </div>
               )}
-            </CardContent>
-            <div className="p-4 bg-zinc-900/80 border-t border-zinc-800">
+            </div>
+
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-white/75 backdrop-blur-xl rounded-full border border-zinc-200 shadow-xl z-20">
               <Button
-                variant="outline"
-                className="w-full text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-white text-xs gap-2"
-                onClick={exportTranscript}
-                disabled={transcript.length === 0}
+                size="icon"
+                variant="ghost"
+                className={`rounded-full w-12 h-12 ${isMicEnabled ? "text-zinc-700 hover:bg-zinc-100" : "bg-red-100 text-red-600 hover:bg-red-200"}`}
+                onClick={toggleMic}
               >
-                <Download className="w-3.5 h-3.5" />
-                Download Transcript (.txt)
+                {isMicEnabled ? (
+                  <Mic className="w-5 h-5" />
+                ) : (
+                  <MicOff className="w-5 h-5" />
+                )}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className={`rounded-full w-12 h-12 ${isCameraEnabled ? "text-zinc-700 hover:bg-zinc-100" : "bg-red-100 text-red-600 hover:bg-red-200"}`}
+                onClick={toggleCamera}
+              >
+                {isCameraEnabled ? (
+                  <Video className="w-5 h-5" />
+                ) : (
+                  <VideoOff className="w-5 h-5" />
+                )}
+              </Button>
+              <div className="w-px h-6 bg-zinc-300 mx-2" />
+              <Button
+                size="icon"
+                variant="destructive"
+                className="rounded-full w-12 h-12 bg-red-600 hover:bg-red-700"
+                onClick={() => setShowEndCallPrompt(true)}
+              >
+                <PhoneOff className="w-5 h-5" />
               </Button>
             </div>
-          </Card>
+          </div>
+
+          {convexUser.role === "doctor" ? (
+            <Card className="flex-1 min-h-55 bg-white border-zinc-200 overflow-hidden flex flex-col rounded-[2rem] ring-1 ring-zinc-200 shadow-sm">
+              <div className="px-4 py-3 border-b border-zinc-200 bg-zinc-50/90 backdrop-blur-sm flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-primary/10 rounded-lg">
+                    <FileText className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-xs tracking-tight text-zinc-900">
+                    Live Transcript
+                  </h3>
+                </div>
+                {isRecording && (
+                  <span className="flex items-center gap-1 text-[9px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                    Recording
+                  </span>
+                )}
+              </div>
+              <CardContent className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+                <AnimatePresence initial={false}>
+                  {transcript.map((entry, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="space-y-1"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[9px] font-bold uppercase tracking-tighter ${entry.speaker === "Doctor" ? "text-primary" : "text-emerald-500"}`}
+                        >
+                          {entry.speaker}
+                        </span>
+                        <span className="text-[9px] text-zinc-600 font-medium">
+                          {entry.timestamp}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-700 leading-relaxed bg-zinc-50 p-2.5 rounded-xl border border-zinc-200">
+                        {entry.text}
+                      </p>
+                    </motion.div>
+                  ))}
+                  <div ref={transcriptEndRef} />
+                </AnimatePresence>
+
+                {transcript.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-center p-4 opacity-40">
+                    <p className="text-xs text-zinc-500">
+                      No conversation recorded yet.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+              <div className="p-3 bg-white border-t border-zinc-200">
+                <Button
+                  variant="outline"
+                  className="w-full text-zinc-700 border-zinc-300 hover:bg-zinc-100 hover:text-zinc-900 text-xs gap-2"
+                  onClick={exportTranscript}
+                  disabled={transcript.length === 0}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Transcript (.txt)
+                </Button>
+              </div>
+            </Card>
+          ) : null}
         </div>
+
+        {convexUser.role !== "doctor" ? (
+          <div className="min-h-0 xl:basis-2/5">
+            <Card className="h-full bg-white border-zinc-200 overflow-hidden flex flex-col rounded-[2rem] ring-1 ring-zinc-200 shadow-sm">
+              <div className="px-4 py-3 border-b border-zinc-200 bg-zinc-50/90 backdrop-blur-sm flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-primary/10 rounded-lg">
+                    <FileText className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-xs tracking-tight text-zinc-900">
+                    Live Transcript
+                  </h3>
+                </div>
+                {isRecording && (
+                  <span className="flex items-center gap-1 text-[9px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                    Recording
+                  </span>
+                )}
+              </div>
+              <CardContent className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+                <AnimatePresence initial={false}>
+                  {transcript.map((entry, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="space-y-1"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[9px] font-bold uppercase tracking-tighter ${entry.speaker === "Doctor" ? "text-primary" : "text-emerald-500"}`}
+                        >
+                          {entry.speaker}
+                        </span>
+                        <span className="text-[9px] text-zinc-600 font-medium">
+                          {entry.timestamp}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-700 leading-relaxed bg-zinc-50 p-2.5 rounded-xl border border-zinc-200">
+                        {entry.text}
+                      </p>
+                    </motion.div>
+                  ))}
+                  <div ref={transcriptEndRef} />
+                </AnimatePresence>
+
+                {transcript.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-center p-4 opacity-40">
+                    <p className="text-xs text-zinc-500">
+                      No conversation recorded yet.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+              <div className="p-3 bg-white border-t border-zinc-200">
+                <Button
+                  variant="outline"
+                  className="w-full text-zinc-700 border-zinc-300 hover:bg-zinc-100 hover:text-zinc-900 text-xs gap-2"
+                  onClick={exportTranscript}
+                  disabled={transcript.length === 0}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Transcript (.txt)
+                </Button>
+              </div>
+            </Card>
+          </div>
+        ) : null}
+
+        {convexUser.role === "doctor" ? (
+          <div className="min-h-0 overflow-y-auto custom-scrollbar rounded-3xl bg-white p-3">
+            <PrescriptionForm
+              embedded
+              patientContext={{
+                patientId: appointment?.patientId
+                  ? String(appointment.patientId)
+                  : "",
+                patientName: patient?.fullName || "",
+              }}
+            />
+          </div>
+        ) : null}
       </main>
 
       {showEndCallPrompt && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl">
-            <h3 className="text-base font-semibold text-white">
+        <div className="fixed inset-0 z-50 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl border border-white/80 bg-white/95 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.18)]">
+            <h3 className="text-lg font-semibold tracking-tight text-zinc-900">
               Save consultation before ending?
             </h3>
-            <p className="text-sm text-zinc-400 mt-2">
+            <p className="text-sm leading-relaxed text-zinc-600 mt-2">
               The call will end immediately. You can save the recording to Blob
               storage or end without saving.
             </p>
-            <div className="mt-5 flex gap-2 justify-end">
+            <div className="mt-6 flex gap-2 justify-end">
               <Button
                 variant="outline"
-                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                className="rounded-full border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
                 onClick={() => setShowEndCallPrompt(false)}
                 disabled={isSaving}
               >
@@ -507,7 +635,7 @@ export default function ConsultationRoomPage({
               </Button>
               <Button
                 variant="outline"
-                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                className="rounded-full border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
                 onClick={handleEndWithoutSaving}
                 disabled={isSaving}
               >
@@ -515,7 +643,7 @@ export default function ConsultationRoomPage({
               </Button>
               <Button
                 variant="destructive"
-                className="bg-red-600 hover:bg-red-700"
+                className="rounded-full bg-red-600 text-white hover:bg-red-700"
                 onClick={handleSaveAndExit}
                 disabled={isSaving}
               >

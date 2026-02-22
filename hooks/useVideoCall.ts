@@ -218,6 +218,76 @@ export function useVideoCall(
         await clearSignalsMutation({ appointmentId });
     }, [localStream, appointmentId, clearSignalsMutation]);
 
+    const setAudioEnabled = useCallback((enabled: boolean) => {
+        if (!localStream) return null;
+        const audioTracks = localStream.getAudioTracks();
+        if (!audioTracks.length) return null;
+
+        audioTracks.forEach((track) => {
+            track.enabled = enabled;
+        });
+
+        const pc = pcRef.current;
+        if (pc) {
+            pc.getSenders()
+                .filter((sender) => sender.track?.kind === "audio")
+                .forEach((sender) => {
+                    if (sender.track) sender.track.enabled = enabled;
+                });
+        }
+
+        return enabled;
+    }, [localStream]);
+
+    const setVideoEnabled = useCallback(async (enabled: boolean) => {
+        if (!localStream) return null;
+
+        const existingVideoTrack = localStream.getVideoTracks()[0];
+
+        if (existingVideoTrack && existingVideoTrack.readyState === "live") {
+            existingVideoTrack.enabled = enabled;
+
+            const pc = pcRef.current;
+            if (pc) {
+                pc.getSenders()
+                    .filter((sender) => sender.track?.kind === "video")
+                    .forEach((sender) => {
+                        if (sender.track) sender.track.enabled = enabled;
+                    });
+            }
+
+            return enabled;
+        }
+
+        if (enabled) {
+            try {
+                const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const newVideoTrack = camStream.getVideoTracks()[0];
+                if (!newVideoTrack) return null;
+
+                localStream.addTrack(newVideoTrack);
+
+                const pc = pcRef.current;
+                if (pc) {
+                    const videoSender = pc.getSenders().find((sender) => sender.track?.kind === "video");
+                    if (videoSender) {
+                        await videoSender.replaceTrack(newVideoTrack);
+                    } else {
+                        pc.addTrack(newVideoTrack, localStream);
+                    }
+                }
+
+                setLocalStream(new MediaStream(localStream.getTracks()));
+                return true;
+            } catch (error) {
+                console.error("Failed to re-enable camera:", error);
+                return null;
+            }
+        }
+
+        return null;
+    }, [localStream]);
+
     return {
         localStream,
         remoteStream,
@@ -226,5 +296,7 @@ export function useVideoCall(
         joinCall,
         endCall,
         sendMessage,
+        setAudioEnabled,
+        setVideoEnabled,
     };
 }

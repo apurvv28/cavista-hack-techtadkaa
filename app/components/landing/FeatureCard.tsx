@@ -13,7 +13,15 @@ interface FeatureCardProps {
   delay?: number;
 }
 
-export const FeatureCard = ({ title, description, howItWorks, icon: Icon, tier, badge, delay = 0 }: FeatureCardProps) => {
+export const FeatureCard = ({
+  title,
+  description,
+  howItWorks,
+  icon: Icon,
+  tier,
+  badge,
+  delay = 0,
+}: FeatureCardProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -30,7 +38,10 @@ export const FeatureCard = ({ title, description, howItWorks, icon: Icon, tier, 
               <Icon className="h-6 w-6 text-primary dark:text-primary/80" />
             </div>
             <div className="flex flex-col items-end gap-2">
-              <Badge variant="secondary" className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+              <Badge
+                variant="secondary"
+                className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
+              >
                 {tier}
               </Badge>
               {badge && (
@@ -40,11 +51,11 @@ export const FeatureCard = ({ title, description, howItWorks, icon: Icon, tier, 
               )}
             </div>
           </div>
-          
+
           <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">
             {title}
           </h3>
-          
+
           <p className="text-zinc-600 dark:text-zinc-400 text-sm mb-6 flex-grow">
             {description}
           </p>

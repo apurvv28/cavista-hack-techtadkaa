@@ -98,3 +98,71 @@ export const getUserById = query({
         return await ctx.db.get(args.userId);
     },
 });
+
+/**
+ * Save prescription metadata and blob URL for a doctor/user.
+ */
+export const savePrescriptionRecord = mutation({
+    args: {
+        doctorId: v.id("users"),
+        doctorClerkId: v.string(),
+        doctorName: v.string(),
+        doctorEmail: v.string(),
+        patientId: v.string(),
+        patientName: v.string(),
+        patientAge: v.string(),
+        patientWeight: v.string(),
+        prescriptionDate: v.string(),
+        blobUrl: v.string(),
+        medicines: v.array(
+            v.object({
+                medicine: v.string(),
+                dosage: v.string(),
+                morning: v.boolean(),
+                afternoon: v.boolean(),
+                evening: v.boolean(),
+            })
+        ),
+    },
+    handler: async (ctx, args) => {
+        return await ctx.db.insert("prescriptions", {
+            ...args,
+            createdAt: new Date().toISOString(),
+        });
+    },
+});
+
+/**
+ * List prescriptions created by a doctor.
+ */
+export const getPrescriptionsByDoctor = query({
+    args: {
+        doctorId: v.id("users"),
+    },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("prescriptions")
+            .withIndex("by_doctor", (q) => q.eq("doctorId", args.doctorId))
+            .order("desc")
+            .collect();
+    },
+});
+
+/**
+ * List prescriptions for a patient by patientId.
+ */
+export const getPrescriptionsByPatientId = query({
+    args: {
+        patientId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const prescriptions = await ctx.db
+            .query("prescriptions")
+            .withIndex("by_patient_id", (q) => q.eq("patientId", args.patientId))
+            .collect();
+
+        return prescriptions.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+    },
+});
