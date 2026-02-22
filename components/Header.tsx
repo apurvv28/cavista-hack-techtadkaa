@@ -32,20 +32,20 @@ export default function Header() {
       className={`fixed top-0 w-full h-16 flex items-center px-6 transition-all duration-300 z-50 justify-between ${
         scrolled
           ? "bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md shadow-sm border-b border-zinc-200 dark:border-zinc-800"
-          : isHome 
-            ? "bg-transparent" 
+          : isHome
+            ? "bg-transparent"
             : "bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800"
       }`}
     >
       <Link href="/">
-        <motion.div 
+        <motion.div
           className="flex items-center space-x-2 group cursor-pointer"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
           <motion.div
-             animate={{ scale: [1, 1.1, 1] }}
-             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
             <HeartPulse className="w-6 h-6 text-primary mr-1" />
           </motion.div>
@@ -60,18 +60,22 @@ export default function Header() {
           <div className="hidden md:flex items-center space-x-2 mr-4">
             {[
               { name: "Dashboard", path: "/dashboard" },
-              { name: "Triage", path: "/triage" },
+              // { name: "Triage", path: "/triage" },
               { name: "Consultation", path: "/consultation" },
               { name: "Documents", path: "/documents" },
-              { name: "Review", path: "/review" },
+              // { name: "Review", path: "/review" },
             ].map((tab) => (
-              <motion.div key={tab.path} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <motion.div
+                key={tab.path}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <Link href={tab.path}>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className={`text-sm font-medium transition-colors ${
-                      pathName === tab.path 
-                        ? "text-primary bg-primary/10" 
+                      pathName === tab.path
+                        ? "text-primary bg-primary/10"
                         : "text-zinc-600 dark:text-zinc-300 hover:text-primary hover:bg-zinc-100 dark:hover:bg-zinc-900"
                     }`}
                   >
