@@ -1,0 +1,40 @@
+# ─── Core LLM / AI ────────────────────────────────────────────────────────────
+openai>=1.0.0
+litellm>=1.50.0
+litellm[proxy]
+
+# ─── LangChain ecosystem (pinned to compatible set) ───────────────────────────
+langchain==0.3.26
+langchain-community==0.3.26
+langchain-core==0.3.66
+langchain-groq>=0.2.0
+langchain-openai==0.2.14
+langchain-text-splitters==0.3.8
+
+# ─── LangGraph ────────────────────────────────────────────────────────────────
+langgraph==0.2.73
+langgraph-checkpoint==2.1.0
+
+# ─── CrewAI ───────────────────────────────────────────────────────────────────
+crewai==1.9.3
+crewai-tools==1.9.3
+
+# ─── ICD Mapping ──────────────────────────────────────────────────────────────
+rapidfuzz>=3.10.0
+
+# ─── Server & Core ─────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn>=0.30.0
+python-multipart>=0.0.9
+
+# ─── Validation & Config ──────────────────────────────────────────────────────
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+python-dotenv>=1.0.0
+email-validator>=2.1.0
+
+# ─── Utilities & Integrations ─────────────────────────────────────────────────
+reportlab>=4.0.0
+qrcode>=8.0
+pillow>=10.0.0
+twilio>=9.0.0

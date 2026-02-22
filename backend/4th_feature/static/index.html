@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Summary Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #result {
+            margin-top: 30px;
+            display: none;
+            padding: 20px;
+            background: #e8f4fd;
+            border-radius: 8px;
+        }
+
+        .status-box {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .sent {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            font-family: inherit;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Patient Summary Generator</h1>
+        <div id="summaryForm">
+            <div class="form-group">
+                <label>Patient Name</label>
+                <input type="text" id="patient_name" value="Priya Sharma">
+            </div>
+            <div class="form-group">
+                <label>Date of Birth</label>
+                <input type="date" id="patient_dob" value="1990-05-15">
+            </div>
+            <div class="form-group">
+                <label>Preferred Language</label>
+                <select id="preferred_language">
+                    <option value="English">English</option>
+                    <option value="Marathi">Marathi</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Tamil">Tamil</option>
+                    <option value="Telugu">Telugu</option>
+                    <option value="Kannada">Kannada</option>
+                    <option value="Bengali">Bengali</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" value="sahilkhaire6.6.2006@gmail.com">
+            </div>
+            <div class="form-group">
+                <label>Phone (E.164)</label>
+                <input type="text" id="phone_number" value="+919834164104">
+            </div>
+            <div class="form-group">
+                <label>Red Flags (comma separated)</label>
+                <input type="text" id="red_flags" value="Severe chest pain, Sudden weakness, Dizziness">
+            </div>
+            <div class="form-group">
+                <label>Risk Status</label>
+                <select id="risk_status">
+                    <option value="GREEN">GREEN</option>
+                    <option value="RED">RED</option>
+                </select>
+            </div>
+            <button onclick="generateSummary()">Generate & Send Report</button>
+        </div>
+
+        <div id="result">
+            <h3>Summary Generated!</h3>
+            <div class="status-box">
+                <span>SMS: <span id="smsStatus" class="status"></span></span>
+                <span>Email: <span id="emailStatus" class="status"></span></span>
+            </div>
+            <p><strong>Language Used:</strong> <span id="langUsed"></span></p>
+            <div style="background: white; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                <pre id="summaryText"></pre>
+            </div>
+            <div id="errorDisplay"
+                style="display: none; background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px;">
+                <strong>⚠️ Note:</strong> <span id="errorList"></span>
+            </div>
+            <div style="text-align: center;">
+                <img id="qrCode" style="width: 150px; margin-bottom: 10px;"><br>
+                <a id="downloadLink" href="#" target="_blank"
+                    style="color: #3498db; text-decoration: underline;">Download PDF Report</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function generateSummary() {
+            const btn = document.querySelector('button');
+            btn.disabled = true;
+            btn.innerText = 'Processing...';
+
+            const payload = {
+                patient_id: "P-" + Math.floor(Math.random() * 10000),
+                patient_name: document.getElementById('patient_name').value,
+                patient_dob: document.getElementById('patient_dob').value,
+                preferred_language: document.getElementById('preferred_language').value,
+                doctor_name: "Dr. Smith",
+                clinic_name: "City Wellness Center",
+                clinic_phone: "+1234567890",
+                clinic_address: "123 Healthcare Ave, Metro City",
+                visit_date: new Date().toISOString().split('T')[0],
+                diagnoses: [
+                    { term: "Hypertension", icd10: "I10", description: "High blood pressure" }
+                ],
+                medications: [
+                    { name: "Amlodipine", dose: "5mg", frequency: "Once daily", duration: "30 days", instructions: "Take in the morning with water" }
+                ],
+                soap_notes: {
+                    Subjective: "Patient reports mild headache.",
+                    Objective: "BP 145/90.",
+                    Assessment: "Stage 1 Hypertension.",
+                    Plan: "Start Amlodipine 5mg, low salt diet, follow up in 2 weeks."
+                },
+                risk_status: document.getElementById('risk_status').value,
+                red_flag_status: document.getElementById('red_flags').value.split(',').map(s => s.trim()).filter(s => s),
+                follow_up_date: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+                phone_number: document.getElementById('phone_number').value,
+                email: document.getElementById('email').value
+            };
+
+            try {
+                const response = await fetch('/generate-summary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                let data;
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    throw new Error(text || 'Internal Server Error');
+                }
+
+                if (response.ok) {
+                    document.getElementById('result').style.display = 'block';
+                    document.getElementById('summaryText').innerText = data.summary_text;
+                    document.getElementById('langUsed').innerText = data.language + (data.language_fallback ? " (Fallback to English)" : "");
+                    document.getElementById('smsStatus').innerText = data.sms_status.toUpperCase();
+                    document.getElementById('smsStatus').className = 'status ' + (data.sms_status === 'sent' ? 'sent' : 'failed');
+                    document.getElementById('emailStatus').innerText = data.email_status.toUpperCase();
+                    document.getElementById('emailStatus').className = 'status ' + (data.email_status === 'sent' ? 'sent' : 'failed');
+                    document.getElementById('qrCode').src = data.qr_code_base64;
+                    document.getElementById('downloadLink').href = data.report_download_link;
+
+                    // Show errors if any
+                    const errorBox = document.getElementById('errorDisplay');
+                    const errorList = document.getElementById('errorList');
+                    if (data.errors && data.errors.length > 0) {
+                        errorBox.style.display = 'block';
+                        errorList.innerText = data.errors.join(' | ');
+                    } else {
+                        errorBox.style.display = 'none';
+                    }
+
+                    window.scrollTo(0, document.body.scrollHeight);
+                } else {
+                    alert('Error: ' + (data ? data.detail : 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Request failed: ' + err.message);
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Generate & Send Report';
+            }
+        }
+    </script>
+</body>
+
+</html>

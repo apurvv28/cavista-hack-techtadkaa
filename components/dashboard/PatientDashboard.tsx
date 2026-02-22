@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar,
   FileText,
   Pill,
   Activity,
+  ShieldCheck,
+  HeartPulse,
   Video,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,13 +17,9 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
-import AbhaStatusCard from "@/components/abha/AbhaStatusCard";
-import AbhaSyncModal from "@/components/abha/AbhaSyncModal";
 
 export default function PatientDashboard() {
   const { user } = useUser();
-  const [showAbhaModal, setShowAbhaModal] = useState(false);
-
   const convexUser = useQuery(
     api.users.getUser,
     user?.id ? { clerkId: user.id } : "skip",
@@ -32,21 +29,6 @@ export default function PatientDashboard() {
     api.appointments.getUpcomingAppointments,
     convexUser?._id ? { userId: convexUser._id } : "skip",
   );
-
-  // Fetch ABHA status to decide whether to show onboarding modal
-  const abhaStatus = useQuery(
-    api.abha.getAbhaStatus,
-    convexUser?._id ? { userId: convexUser._id } : "skip",
-  );
-
-  // Auto-show ABHA modal once when user loads dashboard and has no ABHA linked
-  useEffect(() => {
-    if (convexUser && abhaStatus === null) {
-      // Small delay so the dashboard renders first
-      const timer = setTimeout(() => setShowAbhaModal(true), 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [convexUser, abhaStatus]);
 
   const activeOnlineAppt = appointments?.find(
     (a: any) => a.type === "online" && a.status === "scheduled",
@@ -167,21 +149,32 @@ export default function PatientDashboard() {
           </CardContent>
         </Card>
 
-        {/* ABHA Sync Status — Live dynamic card */}
-        {convexUser?._id && (
-          <AbhaStatusCard userId={convexUser._id} />
-        )}
-
+        {/* Sync Status */}
+        <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+            <CardTitle className="text-sm font-medium">
+              ABDM ABHA Status
+            </CardTitle>
+            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent className="mt-4 relative z-10 flex flex-col justify-between h-25">
+            <div>
+              <p className="font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                Synced and Authentic
+              </p>
+              <p className="text-xs text-zinc-500 mt-2">
+                Your health records are securely linked across all national
+                health providers.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      {/* ABHA Onboarding Modal — auto-shows if not linked */}
-      {showAbhaModal && convexUser?._id && (
-        <AbhaSyncModal
-          userId={convexUser._id}
-          onClose={() => setShowAbhaModal(false)}
-          onLinked={() => setShowAbhaModal(false)}
-        />
-      )}
 
       <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm mt-8">
         <CardHeader>

@@ -7,9 +7,6 @@ load_dotenv()
 
 GROK_API_KEY = os.getenv("GROK_API_KEY")
 
-if not GROK_API_KEY:
-    raise ValueError("GROK_API_KEY not found in .env")
-
 
 def analyze_red_flags(soap_json):
     """
@@ -17,6 +14,9 @@ def analyze_red_flags(soap_json):
     No static rules.
     Fully dynamic clinical reasoning using Groq.
     """
+    api_key = os.getenv("GROK_API_KEY")
+    if not api_key:
+        raise ValueError("GROK_API_KEY not set in .env")
 
     url = "https://api.groq.com/openai/v1/chat/completions"
 
