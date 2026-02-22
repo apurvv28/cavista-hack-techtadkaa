@@ -10,7 +10,8 @@ const ICE_CONFIG = {
 export function useVideoCall(
     appointmentId: Id<"appointments">,
     userId: Id<"users">,
-    onMessage?: (data: any) => void
+    onMessage?: (data: any) => void,
+    onRemoteEndCall?: () => void,
 ) {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -23,9 +24,9 @@ export function useVideoCall(
 
     // Stable ref for the callback
     const onMessageRef = useRef(onMessage);
-    useEffect(() => {
-        onMessageRef.current = onMessage;
-    }, [onMessage]);
+    const onRemoteEndCallRef = useRef(onRemoteEndCall);
+    useEffect(() => { onMessageRef.current = onMessage; }, [onMessage]);
+    useEffect(() => { onRemoteEndCallRef.current = onRemoteEndCall; }, [onRemoteEndCall]);
 
     const signals = useQuery(api.consultations.getSignals, { appointmentId });
     const sendSignalMutation = useMutation(api.consultations.sendSignal);
@@ -47,7 +48,12 @@ export function useVideoCall(
         channel.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                onMessageRef.current?.(data);
+                if (data.type === "call_ended") {
+                    console.log("[WebRTC] Remote party ended the call.");
+                    onRemoteEndCallRef.current?.();
+                } else {
+                    onMessageRef.current?.(data);
+                }
             } catch (e) {
                 console.error("Failed to parse message", e);
             }
@@ -105,30 +111,53 @@ export function useVideoCall(
                 const payload = JSON.parse(signal.payload);
 
                 try {
-                    if (signal.type === "offer" && pc.signalingState === "stable") {
-                        await pc.setRemoteDescription(new RTCSessionDescription(payload));
-                        const answer = await pc.createAnswer();
-                        await pc.setLocalDescription(answer);
-                        await sendSignalMutation({
-                            appointmentId,
-                            senderId: userId,
-                            type: "answer",
-                            payload: JSON.stringify(answer),
-                        });
+                    if (signal.type === "offer") {
+                        // Only process offer if we haven't set a remote description yet
+                        // (guard against re-delivered signals when already in stable state)
+                        if (pc.signalingState === "stable" && !pc.remoteDescription) {
+                            await pc.setRemoteDescription(new RTCSessionDescription(payload));
+                            const answer = await pc.createAnswer();
+                            await pc.setLocalDescription(answer);
+                            await sendSignalMutation({
+                                appointmentId,
+                                senderId: userId,
+                                type: "answer",
+                                payload: JSON.stringify(answer),
+                            });
+                            // Flush queued candidates
+                            for (const c of candidateQueue.current) {
+                                await pc.addIceCandidate(new RTCIceCandidate(c));
+                            }
+                            candidateQueue.current = [];
+                        } else {
+                            // Already processed this offer — skip silently
+                            console.log(`[WebRTC] Skipping re-delivered offer (state: ${pc.signalingState}, remoteDesc: ${!!pc.remoteDescription})`);
+                        }
                         processedSignals.current.add(signal._id);
                     } else if (signal.type === "answer" && pc.signalingState === "have-local-offer") {
                         await pc.setRemoteDescription(new RTCSessionDescription(payload));
+                        // Flush queued candidates
+                        for (const c of candidateQueue.current) {
+                            await pc.addIceCandidate(new RTCIceCandidate(c));
+                        }
+                        candidateQueue.current = [];
+                        processedSignals.current.add(signal._id);
+                    } else if (signal.type === "answer") {
+                        // Answer arrived in wrong state — skip silently
+                        console.log(`[WebRTC] Skipping answer in wrong state: ${pc.signalingState}`);
                         processedSignals.current.add(signal._id);
                     } else if (signal.type === "candidate") {
                         if (pc.remoteDescription) {
                             await pc.addIceCandidate(new RTCIceCandidate(payload));
-                            processedSignals.current.add(signal._id);
                         } else {
                             candidateQueue.current.push(payload);
                         }
+                        processedSignals.current.add(signal._id);
                     }
                 } catch (e) {
-                    console.error("Error processing signal:", signal.type, e);
+                    console.warn("[WebRTC] Error processing signal:", signal.type, e);
+                    // Mark as processed to avoid infinite retry loop
+                    processedSignals.current.add(signal._id);
                 }
             }
         };
@@ -174,6 +203,10 @@ export function useVideoCall(
     }, []);
 
     const endCall = useCallback(async () => {
+        // Notify remote peer before closing
+        if (dcRef.current?.readyState === "open") {
+            try { dcRef.current.send(JSON.stringify({ type: "call_ended" })); } catch (_) { }
+        }
         dcRef.current?.close();
         dcRef.current = null;
         pcRef.current?.close();

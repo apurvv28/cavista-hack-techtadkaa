@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="{{ lang_code }}">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ trans.summary }}</title>
+    <style>
+        /* Base Styles & Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Devanagari:wght@400;700&family=Noto+Sans+Tamil:wght@400;700&display=swap');
+
+        @page {
+            size: A4;
+            margin: 20mm 15mm 25mm 15mm;
+
+            @top-left {
+                content: element(header);
+            }
+
+            @bottom-center {
+                content: element(footer);
+            }
+        }
+
+        body {
+            font-family: 'Noto Sans', sans-serif;
+            font-size: 11pt;
+            color: #2c3e50;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Lang specific fonts */
+        .mr,
+        .hi {
+            font-family: 'Noto Sans Devanagari', 'Noto Sans', sans-serif;
+        }
+
+        .ta {
+            font-family: 'Noto Sans Tamil', 'Noto Sans', sans-serif;
+        }
+
+        .en {
+            font-family: 'Noto Sans', sans-serif;
+        }
+
+        /* Header & Footer Elements */
+        header {
+            position: running(header);
+            border-bottom: 2px solid #bdc3c7;
+            padding-bottom: 5px;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 18pt;
+            color: #2c3e50;
+        }
+
+        header p {
+            margin: 0;
+            font-size: 10pt;
+            color: #7f8c8d;
+        }
+
+        footer {
+            position: running(footer);
+            border-top: 1px solid #bdc3c7;
+            padding-top: 5px;
+            text-align: center;
+            font-size: 8pt;
+            color: #7f8c8d;
+        }
+
+        /* Helpers */
+        .page-break {
+            page-break-before: always;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .status-green {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .status-red {
+            color: #c0392b;
+            font-weight: bold;
+        }
+
+        /* Patient Info Grid */
+        .patient-info {
+            display: table;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .info-row {
+            display: table-row;
+        }
+
+        .info-label {
+            display: table-cell;
+            font-weight: bold;
+            width: 120px;
+            padding: 4px 0;
+        }
+
+        .info-value {
+            display: table-cell;
+            padding: 4px 0;
+        }
+
+        /* Snapshot Boxes */
+        .snapshot-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+
+        .snapshot-title {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 10px;
+            background-color: #ecf0f1;
+            padding: 5px 10px;
+        }
+
+        .summary-text {
+            white-space: pre-wrap;
+            /* Honors newlines from agent output */
+            margin: 0;
+        }
+
+        /* QR Code */
+        .qr-section {
+            margin-top: 30px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+
+        .qr-img {
+            width: 150px;
+            height: 150px;
+        }
+
+        /* Page 2: Clinical Data Lists */
+        ul {
+            margin-top: 5px;
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Repeating Header -->
+    <header>
+        <h1>{{ data.clinic_name | default('Medical Summary') }}</h1>
+        <p>Official Clinical Report</p>
+    </header>
+
+    <!-- Repeating Footer -->
+    <footer>
+        <p>{{ data.clinic_name | default('') }} | {{ data.clinic_address | default('') }} | {{ data.clinic_phone |
+            default('') }}</p>
+    </footer>
+
+    <!-- ==================== PAGE 1 ==================== -->
+    <div class="patient-info">
+        <div class="info-row">
+            <div class="info-label">Patient Name:</div>
+            <div class="info-value">{{ data.patient_name }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Patient ID:</div>
+            <div class="info-value">{{ data.patient_id }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Visit Date:</div>
+            <div class="info-value">{{ data.visit_date }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Doctor:</div>
+            <div class="info-value">{{ data.doctor_name }}</div>
+        </div>
+    </div>
+
+    <!-- Agentic Summary Snapshot (Multilingual) -->
+    <div class="snapshot-box {{ lang_code }}">
+        <h2 class="snapshot-title">{{ trans.summary }} -> HEALTH SUMMARY</h2>
+        <pre class="summary-text {{ lang_code }}">{{ summary_text }}</pre>
+    </div>
+
+    <div style="margin-top: 15px; font-size: 13pt;">
+        <span class="bold">{{ trans.risk }}:</span>
+        <span class="{% if data.risk_status == 'GREEN' %}status-green{% else %}status-red{% endif %}">
+            {{ data.risk_status | default('GREEN') }}
+        </span>
+    </div>
+
+    {% if qr_code_path %}
+    <div class="qr-section">
+        <p class="bold">YOUR DIGITAL REPORT</p>
+        <img class="qr-img" src="file://{{ qr_code_path }}" alt="QR Code">
+        <p style="font-size: 9pt; color:#7f8c8d;">Scan to verify clinical findings</p>
+    </div>
+    {% endif %}
+
+    <!-- ==================== PAGE 2 ==================== -->
+    <div class="page-break"></div>
+
+    <!-- Clinical Notes (English only, derived from SOAP & Vitals) -->
+    <div class="snapshot-box en">
+        <h2 class="snapshot-title">CLINICAL NOTES</h2>
+
+        <p><span class="bold">COMPLAINT:</span> {{ data.clinical_findings.chief_complaint | default('None recorded') }}
+        </p>
+
+        {% if data.clinical_findings.vitals %}
+        <p><span class="bold">VITALS:</span>
+            {% for k, v in data.clinical_findings.vitals.items() %}
+            {% if v %}{{ k | replace('_', ' ') | title }}: {{ v }}{% if not loop.last %}, {% endif %}{% endif %}
+            {% endfor %}
+        </p>
+        {% endif %}
+
+        {% if data.clinical_findings.objective_findings %}
+        <p><span class="bold">OBJECTIVE FINDINGS:</span> {{ data.clinical_findings.objective_findings }}</p>
+        {% endif %}
+
+        <p><span class="bold">PLAN:</span> {{ data.clinical_findings.plan | default('None recorded') }}</p>
+    </div>
+
+    <!-- Diagnoses -->
+    <div class="snapshot-box en">
+        <h2 class="snapshot-title">DIAGNOSES & CODES</h2>
+        <ul>
+            {% for mapping in data.medical_knowledge %}
+            <li>
+                <span class="bold">{{ mapping.disease_details.disease_name }}</span>
+                (ICD-10: {{ mapping.disease_details.icd_code }})
+                {% if mapping.disease_details.what_is_wrong %}
+                <br><span style="font-size: 10pt;">Info: {{ mapping.disease_details.what_is_wrong }}</span>
+                {% endif %}
+            </li>
+            {% else %}
+            <li>No specific diagnoses recorded.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Medications -->
+    <div class="snapshot-box en">
+        <h2 class="snapshot-title">MEDICATIONS</h2>
+        <ul>
+            {% for mapping in data.medical_knowledge %}
+            {% for med in mapping.disease_details.medications %}
+            <li>{{ med }} <span style="font-size: 10pt; color: #7f8c8d;">(for {{ mapping.disease_details.disease_name
+                    }})</span></li>
+            {% endfor %}
+            {% else %}
+            <li>No specific medications prescribed in knowledge mapping.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div style="margin-top: 20px; font-size: 12pt;" class="en">
+        <span class="bold">FOLLOW UP:</span> {{ data.follow_up_date | default('As needed') }}
+    </div>
+
+</body>
+
+</html>

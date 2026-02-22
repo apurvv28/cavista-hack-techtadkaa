@@ -7,13 +7,13 @@ load_dotenv()
 
 GROK_API_KEY = os.getenv("GROK_API_KEY")
 
-if not GROK_API_KEY:
-    raise ValueError("GROK_API_KEY not found in .env")
-
 # -------------------------------
 # 1️⃣ Transcription using Grok Whisper
 # -------------------------------
 def transcribe_audio_with_grok(audio_path):
+    api_key = os.getenv("GROK_API_KEY")
+    if not api_key:
+        raise ValueError("GROK_API_KEY not set in .env")
 
     url = "https://api.groq.com/openai/v1/audio/transcriptions"
     transcription_model = os.getenv("GROQ_TRANSCRIPTION_MODEL", "whisper-large-v3-turbo")
@@ -47,6 +47,9 @@ def transcribe_audio_with_grok(audio_path):
 # 2️⃣ Generate SOAP JSON
 # -------------------------------
 def generate_soap_from_text(transcription):
+    api_key = os.getenv("GROK_API_KEY")
+    if not api_key:
+        raise ValueError("GROK_API_KEY not set in .env")
 
     url = "https://api.groq.com/openai/v1/chat/completions"
 
