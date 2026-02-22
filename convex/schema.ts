@@ -17,6 +17,7 @@ export default defineSchema({
         status: v.union(v.literal("scheduled"), v.literal("completed"), v.literal("cancelled")),
         type: v.union(v.literal("online"), v.literal("offline")),
         scheduledAt: v.string(), // ISO string format
+        patientRiskScore: v.optional(v.number()),
     })
         .index("by_doctor", ["doctorId"])
         .index("by_patient", ["patientId"]),
@@ -27,7 +28,8 @@ export default defineSchema({
         appointmentId: v.id("appointments"),
         queueIndex: v.number(),
     })
-        .index("by_doctor_queue", ["doctorId", "queueIndex"]),
+        .index("by_doctor_queue", ["doctorId", "queueIndex"])
+        .index("by_patient_queue", ["patientId", "queueIndex"]),
 
     // WebRTC Signaling for Video Consultation
     signaling: defineTable({

@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-02-22T00:00:28.210563",
+  "patient_name": "apurv",
+  "total_diseases_assessed": 8,
+  "risk_scores": {
+    "Common Cold": 60,
+    "Influenza (Flu)": 55,
+    "COVID-19": 50,
+    "Migraine": 45,
+    "Pneumonia": 40,
+    "Allergies": 35,
+    "Gastroenteritis": 30,
+    "Hypertension": 25
+  }
+}

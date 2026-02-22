@@ -4,6 +4,7 @@ import { HeroSection } from "./components/landing/HeroSection";
 import { FeaturesList } from "./components/landing/FeaturesList";
 import { TestimonialSection } from "./components/landing/TestimonialSection";
 import { Footer } from "./components/landing/Footer";
+import ChatbotPopup from "./components/landing/chatbot";
 
 export default function Home() {
   return (
@@ -11,6 +12,7 @@ export default function Home() {
       <HeroSection />
       <FeaturesList />
       <TestimonialSection />
+      <ChatbotPopup />
       <Footer />
     </main>
   );

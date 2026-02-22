@@ -1,0 +1,33 @@
+# LiteLLM Proxy Configuration for ICD-Mapping Agent
+# Run: litellm --config litellm_config.yaml
+# Proxy runs at http://localhost:4000
+
+model_list:
+  # Llama Guard 4 - safety/moderation (optional pre-check)
+  - model_name: meta-llama/llama-guard-4-12b
+    litellm_params:
+      model: groq/meta-llama/llama-guard-4-12b
+      api_key: "os.environ/GROQ_API_KEY"
+      temperature: 0.1
+      max_tokens: 1024
+
+  # Alternative model for disease extraction (recommended for better extraction quality)
+  - model_name: groq/llama-3.3-70b-versatile
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: "os.environ/GROQ_API_KEY"
+      temperature: 0.1
+      max_tokens: 4096
+
+  # Wildcard to support any Groq model
+  - model_name: groq/*
+    litellm_params:
+      model: groq/*
+      api_key: "os.environ/GROQ_API_KEY"
+
+litellm_settings:
+  drop_params: false
+  set_verbose: false
+
+general_settings:
+  master_key: null  # Set if you want API key auth on proxy

@@ -1,0 +1,21 @@
+# Chatbot Dependencies
+pyttsx3>=2.90
+SpeechRecognition>=3.10.0
+PyAudio>=0.2.11
+langdetect>=1.0.9
+
+# AI Agent Dependencies (for risk assessment)
+litellm>=1.50.0
+openai==1.83.0
+requests>=2.31.0
+
+# Multi-Agent Orchestration (Optional - for advanced CrewAI/LangGraph features)
+# pip install crewai langgraph langchain langchain-openai
+# crewai>=0.70.0
+# langgraph>=0.1.0
+# langchain>=0.2.0
+# langchain-openai>=0.1.0
+
+# Utils
+python-dotenv==1.1.1
+pydantic==2.11.9

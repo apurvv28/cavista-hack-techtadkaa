@@ -54,6 +54,99 @@ def _get_icd_funcs():
     from src.disease_info_fetcher import get_disease_info
     return run_soap_to_icd, get_disease_info
 
+def _fallback_risk_assessment(symptoms_text: str, top_n: int) -> Dict[str, Any]:
+    symptoms_lower = symptoms_text.lower()
+    disease_patterns = {
+        "Common Cold": {
+            "keywords": ["runny nose", "sore throat", "cough", "sneezing", "congestion", "headache", "fever"],
+            "base_risk": 60,
+        },
+        "Influenza (Flu)": {
+            "keywords": ["fever", "chills", "body aches", "fatigue", "cough", "headache", "sore throat"],
+            "base_risk": 55,
+        },
+        "COVID-19": {
+            "keywords": ["fever", "cough", "fatigue", "loss of taste", "loss of smell", "shortness of breath", "sore throat"],
+            "base_risk": 50,
+        },
+        "Migraine": {
+            "keywords": ["headache", "nausea", "sensitivity to light", "sensitivity to sound", "throbbing pain"],
+            "base_risk": 45,
+        },
+        "Pneumonia": {
+            "keywords": ["cough", "fever", "chills", "shortness of breath", "chest pain", "fatigue"],
+            "base_risk": 40,
+        },
+        "Allergies": {
+            "keywords": ["sneezing", "itchy eyes", "runny nose", "congestion", "rash", "hives"],
+            "base_risk": 35,
+        },
+        "Gastroenteritis": {
+            "keywords": ["nausea", "vomiting", "diarrhea", "stomach pain", "fever", "dehydration"],
+            "base_risk": 30,
+        },
+        "Hypertension": {
+            "keywords": ["headache", "dizziness", "chest pain", "shortness of breath", "fatigue"],
+            "base_risk": 25,
+        },
+    }
+
+    risk_scores: Dict[str, int] = {}
+    for disease, data in disease_patterns.items():
+        score = data["base_risk"]
+        for keyword in data["keywords"]:
+            if keyword in symptoms_lower:
+                score += 10
+        risk_scores[disease] = min(100, max(data["base_risk"], score))
+
+    risk_scores = dict(sorted(risk_scores.items(), key=lambda x: x[1], reverse=True))
+
+    def risk_level(score: int) -> str:
+        if score >= 70:
+            return "High Risk"
+        if score >= 40:
+            return "Medium Risk"
+        return "Low Risk"
+
+    predictions = [
+        {"disease": disease, "score": score, "risk_level": risk_level(score)}
+        for disease, score in list(risk_scores.items())[:top_n]
+    ]
+
+    return {
+        "total_diseases_assessed": len(risk_scores),
+        "predictions": predictions,
+        "risk_scores": risk_scores,
+    }
+
+def _patient_risk_level(score: int) -> str:
+    if score >= 70:
+        return "High Risk"
+    if score >= 40:
+        return "Medium Risk"
+    return "Low Risk"
+
+def _calculate_patient_risk_score(predictions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    if not predictions:
+        return {"patient_risk_score": 0, "patient_risk_level": "Low Risk"}
+
+    normalized_scores: List[float] = []
+    for item in predictions:
+        if isinstance(item.get("score"), (int, float)):
+            normalized_scores.append(float(item["score"]))
+        elif isinstance(item.get("probability"), (int, float)):
+            normalized_scores.append(float(item["probability"]) * 100.0)
+
+    if not normalized_scores:
+        return {"patient_risk_score": 0, "patient_risk_level": "Low Risk"}
+
+    patient_risk_score = int(round(sum(normalized_scores) / len(normalized_scores)))
+    patient_risk_score = max(0, min(100, patient_risk_score))
+    return {
+        "patient_risk_score": patient_risk_score,
+        "patient_risk_level": _patient_risk_level(patient_risk_score),
+    }
+
 # ─── Token helpers ────────────────────────────────────────────────────────────
 def _make_token(patient_id: str) -> str:
     try:
@@ -134,7 +227,9 @@ def _generate_report_pdf(
     GREY  = colors.HexColor("#7f8c8d")
     LIGHT = colors.HexColor("#f8f9fa")
 
-    def _s(name, **kw): return ParagraphStyle(name, fontName=fn, **kw)
+    def _s(name, **kw):
+        font_name = kw.pop("fontName", fn)
+        return ParagraphStyle(name, fontName=font_name, **kw)
 
     def _box(title: str, body: str):
         tp = Paragraph(title, ParagraphStyle("BT", fontName=fb, fontSize=11, textColor=colors.whitesmoke))
@@ -334,6 +429,13 @@ class PatientSummaryRequest(BaseModel):
 class ICDRequest(BaseModel):
     soap_text: str = Field(...)
 
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+
+class SymptomAssessmentRequest(BaseModel):
+    symptoms: str = Field(..., min_length=1)
+    top_n: int = Field(default=5, ge=1, le=8)
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback; traceback.print_exc()
@@ -346,6 +448,95 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.get("/")
 async def health_check():
     return {"status": "ok", "message": "Cavista backend running — CORS + QR + PDF enabled."}
+
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    message = request.message.strip()
+    if not message:
+        raise HTTPException(400, "Message cannot be empty")
+
+    groq_key = os.getenv("GROQ_API_KEY") or os.getenv("GROK_API_KEY")
+    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+    if not groq_key:
+        return {
+            "reply": (
+                "I received your message, but the AI model is not configured yet. "
+                "Please set GROQ_API_KEY in backend/.env to enable assistant responses."
+            )
+        }
+
+    prompt = (
+        "You are a concise healthcare assistant. Provide general informational guidance only. "
+        "Do not provide definitive diagnosis. If symptoms seem severe, advise urgent care."
+    )
+
+    try:
+        resp = http_requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {groq_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": message},
+                ],
+                "temperature": 0.3,
+                "max_tokens": 300,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        content = resp.json()["choices"][0]["message"]["content"].strip()
+        return {"reply": content}
+    except Exception as e:
+        raise HTTPException(500, f"Chat service failed: {e}")
+
+
+@app.post("/chatbot/assess")
+async def chatbot_assess(request: SymptomAssessmentRequest):
+    symptoms = request.symptoms.strip()
+    if not symptoms:
+        raise HTTPException(400, "Symptoms cannot be empty")
+
+    used_fallback = False
+
+    try:
+        from chatbot.src.risk_assessor import RiskAssessor
+
+        assessor = RiskAssessor()
+        risk_scores = assessor.analyze_symptoms(symptoms)
+        ranked = list(risk_scores.items())[: request.top_n]
+        predictions = [
+            {
+                "disease": disease,
+                "score": score,
+                "risk_level": assessor.get_risk_level(score),
+            }
+            for disease, score in ranked
+        ]
+        payload = {
+            "total_diseases_assessed": len(risk_scores),
+            "predictions": predictions,
+            "risk_scores": risk_scores,
+        }
+    except Exception:
+        used_fallback = True
+        payload = _fallback_risk_assessment(symptoms, request.top_n)
+
+    patient_risk = _calculate_patient_risk_score(payload.get("predictions", []))
+
+    return {
+        "input": symptoms,
+        **payload,
+        **patient_risk,
+        "source": "fallback" if used_fallback else "chatbot_module",
+        "disclaimer": "This is an informational AI assessment and not a medical diagnosis.",
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
