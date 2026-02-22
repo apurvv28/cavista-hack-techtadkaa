@@ -386,7 +386,12 @@ export function PrescriptionForm({
         </div>
 
         <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center">
-          <Button type="button" variant="outline" onClick={addMedicineRow}>
+          <Button
+            type="button"
+            variant="outline"
+            className="text-zinc-900 hover:text-zinc-900 dark:text-zinc-100 dark:hover:text-zinc-100"
+            onClick={addMedicineRow}
+          >
             <Plus className="h-4 w-4" />
             Add Medicine
           </Button>

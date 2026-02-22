@@ -8,21 +8,29 @@ import {
   FileText,
   CheckCircle2,
   Video,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { useState } from "react";
+import { Id } from "@/convex/_generated/dataModel";
 
 export default function DoctorDashboard() {
   const { user } = useUser();
+  const [completingId, setCompletingId] = useState<Id<"appointments"> | null>(
+    null,
+  );
   const convexUser = useQuery(
     api.users.getUser,
     user?.id ? { clerkId: user.id } : "skip",
   );
+  const completeAppointment = useMutation(api.appointments.completeAppointment);
 
   const appointments = useQuery(
     api.appointments.getUpcomingAppointments,
@@ -32,24 +40,36 @@ export default function DoctorDashboard() {
   const activeOnlineAppt = appointments?.find(
     (a: any) => a.type === "online" && a.status === "scheduled",
   );
+
+  const handleCompleteOffline = async (appointmentId: Id<"appointments">) => {
+    try {
+      setCompletingId(appointmentId);
+      await completeAppointment({ appointmentId });
+    } catch (error) {
+      console.error("Failed to complete offline appointment:", error);
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {activeOnlineAppt && (
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-primary border border-primary/20 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden group"
+          className="bg-white/90 border border-zinc-200 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
           <div className="flex items-center gap-5 relative z-10">
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-md">
-              <Video className="w-8 h-8 text-white" />
+            <div className="p-4 bg-primary/10 rounded-2xl backdrop-blur-md">
+              <Video className="w-8 h-8 text-primary" />
             </div>
             <div>
-              <p className="font-bold text-xl text-white">
+              <p className="font-bold text-xl text-zinc-900">
                 Online Consultation Ready
               </p>
-              <p className="text-white/70 text-sm">
+              <p className="text-zinc-500 text-sm">
                 Your next patient is waiting in the virtual room.
               </p>
             </div>
@@ -60,7 +80,7 @@ export default function DoctorDashboard() {
           >
             <Button
               size="lg"
-              className="bg-white text-primary hover:bg-zinc-100 w-full md:w-auto px-8 font-bold h-14 rounded-2xl shadow-xl hover:shadow-2xl transition-all"
+              className="bg-zinc-900 text-white hover:bg-zinc-800 w-full md:w-auto px-8 font-bold h-14 rounded-2xl shadow-sm transition-all"
             >
               Join Video Room
             </Button>
@@ -83,7 +103,7 @@ export default function DoctorDashboard() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <Card className="border-zinc-200/80 bg-white/90 shadow-sm rounded-3xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Patients Seen</CardTitle>
             <Users className="h-4 w-4 text-zinc-500" />
@@ -95,7 +115,7 @@ export default function DoctorDashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <Card className="border-zinc-200/80 bg-white/90 shadow-sm rounded-3xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Pending Reviews
@@ -109,7 +129,7 @@ export default function DoctorDashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <Card className="border-zinc-200/80 bg-white/90 shadow-sm rounded-3xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">AI Red Flags</CardTitle>
             <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -121,7 +141,7 @@ export default function DoctorDashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <Card className="border-zinc-200/80 bg-white/90 shadow-sm rounded-3xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Hallucination Guard
@@ -139,7 +159,7 @@ export default function DoctorDashboard() {
 
       {/* Patient Queue & Alerts */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <Card className="col-span-4 border-zinc-200/80 bg-white/90 shadow-sm rounded-3xl">
           <CardHeader>
             <CardTitle>Recent SOAP Notes (Pending Sign-off)</CardTitle>
           </CardHeader>
@@ -176,7 +196,7 @@ export default function DoctorDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-3 border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <Card className="col-span-3 border-zinc-200/80 bg-white/90 shadow-sm rounded-3xl">
           <CardHeader>
             <CardTitle>Priority Triage Queue</CardTitle>
           </CardHeader>
@@ -204,6 +224,23 @@ export default function DoctorDashboard() {
                         >
                           {alert.type === "online" ? "ONLINE" : "OFFLINE"}
                         </Badge>
+                        {alert.type === "offline" ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            className="border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                            onClick={() => handleCompleteOffline(alert._id)}
+                            disabled={completingId === alert._id}
+                            title="Mark offline consultation complete"
+                          >
+                            {completingId === alert._id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Check className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        ) : null}
                       </p>
                       <p className="text-sm text-zinc-500 dark:text-zinc-400">
                         {new Date(alert.scheduledAt).toLocaleString()}

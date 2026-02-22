@@ -147,3 +147,22 @@ export const getPrescriptionsByDoctor = query({
             .collect();
     },
 });
+
+/**
+ * List prescriptions for a patient by patientId.
+ */
+export const getPrescriptionsByPatientId = query({
+    args: {
+        patientId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const prescriptions = await ctx.db
+            .query("prescriptions")
+            .withIndex("by_patient_id", (q) => q.eq("patientId", args.patientId))
+            .collect();
+
+        return prescriptions.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+    },
+});

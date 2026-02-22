@@ -7,7 +7,7 @@ import {
   Pill,
   Activity,
   ShieldCheck,
-  HeartPulse,
+  Download,
   Video,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,9 +30,21 @@ export default function PatientDashboard() {
     convexUser?._id ? { userId: convexUser._id } : "skip",
   );
 
+  const prescriptions = useQuery(
+    api.users.getPrescriptionsByPatientId,
+    convexUser?._id ? { patientId: String(convexUser._id) } : "skip",
+  );
+
   const activeOnlineAppt = appointments?.find(
     (a: any) => a.type === "online" && a.status === "scheduled",
   );
+
+  const nextScheduledAppt = appointments
+    ?.filter((a: any) => a.status === "scheduled")
+    .sort(
+      (a: any, b: any) =>
+        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+    )[0];
 
   return (
     <div className="space-y-8">
@@ -40,7 +52,7 @@ export default function PatientDashboard() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-primary/10 border border-primary/20 p-4 rounded-2xl flex items-center justify-between gap-4"
+          className="bg-white/90 border border-zinc-200 p-4 rounded-2xl flex items-center justify-between gap-4 shadow-sm"
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/20 rounded-full">
@@ -67,10 +79,10 @@ export default function PatientDashboard() {
       )}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-            My Health Record
+          <h2 className="text-2xl font-semibold  tracking-tight text-zinc-900 dark:text-white ">
+            Health Record
           </h2>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-1">
+          <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
             Welcome back. Your health is fully synced with ABDM.
           </p>
         </div>
@@ -95,34 +107,34 @@ export default function PatientDashboard() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Next Appointment */}
-        <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm bg-linear-to-br from-white to-zinc-50 dark:from-zinc-950 dark:to-zinc-900">
+        <Card className="border-zinc-200/80 shadow-sm bg-white/90 rounded-3xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Next Appointment
             </CardTitle>
             <Calendar className="h-4 w-4 text-zinc-500" />
           </CardHeader>
-          <CardContent className="mt-4">
-            {activeOnlineAppt ? (
+          <CardContent className="mt-4 min-h-44 flex flex-col justify-between">
+            {nextScheduledAppt ? (
               <>
-                <div className="text-2xl font-bold">
-                  {new Date(activeOnlineAppt.scheduledAt).toLocaleString()}
+                <div className="text-xl font-semibold text-zinc-800">
+                  {new Date(nextScheduledAppt.scheduledAt).toLocaleString()}
                 </div>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
                   Scheduled Appointment
                 </p>
-                <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-between">
+                <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
                   <Badge
                     variant="outline"
                     className="text-amber-600 border-amber-200 bg-amber-50"
                   >
-                    {activeOnlineAppt.type === "online"
+                    {nextScheduledAppt.type === "online"
                       ? "Online"
                       : "In-Person"}
                   </Badge>
-                  <span className="text-xs text-zinc-500">
-                    Status: {activeOnlineAppt.status}
-                  </span>
+                  <div className="text-sm text-zinc-500">
+                    Status: {nextScheduledAppt.status}
+                  </div>
                 </div>
               </>
             ) : (
@@ -134,7 +146,7 @@ export default function PatientDashboard() {
         </Card>
 
         {/* Active Prescriptions */}
-        <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <Card className="border-zinc-200/80 shadow-sm bg-white/90 rounded-3xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Active Prescriptions
@@ -142,15 +154,44 @@ export default function PatientDashboard() {
             <Pill className="h-4 w-4 text-zinc-500" />
           </CardHeader>
           <CardContent className="mt-4 space-y-4">
-            <div className="text-sm text-zinc-500">
-              Prescription data will be displayed once consultations are
-              completed.
-            </div>
+            {prescriptions && prescriptions.length > 0 ? (
+              prescriptions.slice(0, 3).map((prescription: any) => (
+                <div
+                  key={prescription._id}
+                  className="flex items-center justify-between gap-3 border border-zinc-200 rounded-xl px-3 py-2"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-zinc-900">
+                      {prescription.doctorName || "Doctor"}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      Date:{" "}
+                      {prescription.prescriptionDate ||
+                        new Date(prescription.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <a
+                    href={prescription.blobUrl}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download
+                  </a>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-zinc-500">
+                No active prescriptions available.
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Sync Status */}
-        <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
+        <Card className="border-zinc-200/80 shadow-sm bg-white/90 relative overflow-hidden rounded-3xl">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
             <CardTitle className="text-sm font-medium">
@@ -176,7 +217,7 @@ export default function PatientDashboard() {
         </Card>
       </div>
 
-      <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm mt-8">
+      <Card className="border-zinc-200/80 shadow-sm bg-white/90 mt-8 rounded-3xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
