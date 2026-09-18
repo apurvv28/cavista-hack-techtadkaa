@@ -156,7 +156,7 @@ export default function ChatbotPopup() {
       {isOpen && (
         <div className="fixed bottom-20 right-5 w-80 h-96 bg-white shadow-2xl rounded-2xl flex flex-col overflow-hidden border">
           {/* Header */}
-          <div className="bg-blue-600 text-white p-3 font-semibold">
+          <div className="bg-red-800 text-white p-3 font-semibold">
             AI Assistant
           </div>
 
@@ -167,7 +167,7 @@ export default function ChatbotPopup() {
                 key={index}
                 className={`p-2 rounded-lg max-w-xs ${
                   msg.role === "user"
-                    ? "bg-blue-500 text-white self-end ml-auto"
+                    ? "bg-red-800 text-white self-end ml-auto"
                     : "bg-gray-200 text-black"
                 }`}
               >
